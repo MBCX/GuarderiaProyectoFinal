@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Data\" />
+    <Folder Include="DependencyInjection\" />
+    <Folder Include="Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Guarderia.Application\Guarderia.Application.csproj" />
+    <ProjectReference Include="..\Guarderia.Domain\Guarderia.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

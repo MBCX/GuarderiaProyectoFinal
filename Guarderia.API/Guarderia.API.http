@@ -1,0 +1,6 @@
+@Guarderia.API_HostAddress = http://localhost:5239
+
+GET {{Guarderia.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
