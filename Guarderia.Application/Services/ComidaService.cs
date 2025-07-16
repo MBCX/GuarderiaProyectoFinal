@@ -20,9 +20,9 @@ namespace Guarderia.Application.Services
             _alergiaService = alergiaService;
         }
 
-        public async Task<List<Comida>> ObtenerComidasPorNiñoAsync(int niñoId)
+        public async Task<List<Comida>> ObtenerComidasPorNinoAsync(int NinoId)
         {
-            return await _comidaRepository.ObtenerPorNiñoIdAsync(niñoId);
+            return await _comidaRepository.ObtenerPorNinoIdAsync(NinoId);
         }
 
         public async Task<List<Comida>> ObtenerComidasPorFechaAsync(DateTime fecha)
@@ -31,11 +31,11 @@ namespace Guarderia.Application.Services
             return todasComidas.Where(c => c.Fecha.Date == fecha.Date).ToList();
         }
 
-        public async Task AsignarComidaAsync(int niñoId, DateTime fecha, string tipoComida, decimal costo)
+        public async Task AsignarComidaAsync(int NinoId, DateTime fecha, string tipoComida, decimal costo)
         {
             var comida = new Comida
             {
-                NinoId = niñoId,
+                NinoId = NinoId,
                 Fecha = fecha,
                 Tipo = tipoComida,
                 Costo = costo
@@ -44,9 +44,9 @@ namespace Guarderia.Application.Services
             await _comidaRepository.RegistrarAsync(comida);
         }
 
-        public async Task<bool> ValidarAlergiaAntesDeComerAsync(int niñoId, string[] ingredientes)
+        public async Task<bool> ValidarAlergiaAntesDeComerAsync(int NinoId, string[] ingredientes)
         {
-            var alergias = await _alergiaService.ObtenerAlergiasPorNiñoAsync(niñoId);
+            var alergias = await _alergiaService.ObtenerAlergiasPorNinoAsync(NinoId);
 
             foreach (var ingrediente in ingredientes)
             {
@@ -61,9 +61,9 @@ namespace Guarderia.Application.Services
             return true;
         }
 
-        public async Task<decimal> CalcularCostoComidasMensualAsync(int niñoId, int mes, int año)
+        public async Task<decimal> CalcularCostoComidasMensualAsync(int NinoId, int mes, int año)
         {
-            var comidas = await _comidaRepository.ObtenerPorNiñoIdAsync(niñoId);
+            var comidas = await _comidaRepository.ObtenerPorNinoIdAsync(NinoId);
 
             return comidas
                 .Where(c => c.Fecha.Month == mes && c.Fecha.Year == año)

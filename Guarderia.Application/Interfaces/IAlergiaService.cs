@@ -8,7 +8,7 @@ namespace Guarderia.Application.Interfaces
 {
     public interface IAlergiaService
     {
-        Task<List<string>> ObtenerAlergiasPorNiñoAsync(int niñoId);
+        Task<List<string>> ObtenerAlergiasPorNinoAsync(int NinoId);
         Task RegistrarAlergiaAsync(int ninoId, string ingrediente);
         Task EliminarAlergiaAsync(int ninoId, string ingrediente);
         Task ActualizarAlergiasAsync(int ninoId, List<string> nuevasAlergias);

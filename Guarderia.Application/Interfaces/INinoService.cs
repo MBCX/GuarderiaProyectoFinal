@@ -10,12 +10,12 @@ namespace Guarderia.Application.Interfaces
 {
     public interface INinoService
     {
-        Task<Nino> ObtenerNiñoPorIdAsync(int id);
-        Task<List<Nino>> ObtenerTodosLosNiñosAsync();
-        Task<List<Nino>> ObtenerNiñosActivosAsync();
-        Task<int> RegistrarNiñoAsync(Nino nino);
-        Task ActualizarNiñoAsync(Nino nino);
-        Task DarBajaNiñoAsync(int niñoId, DateTime fechaBaja);
+        Task<Nino> ObtenerNinoPorIdAsync(int id);
+        Task<List<Nino>> ObtenerTodosLosNinosAsync();
+        Task<List<Nino>> ObtenerNinosActivosAsync();
+        Task<int> RegistrarNinoAsync(Nino nino);
+        Task ActualizarNinoAsync(Nino nino);
+        Task DarBajaNinoAsync(int NinoId, DateTime fechaBaja);
         Task<bool> ValidarDatosObligatoriosAsync(Nino nino);
     }
 }

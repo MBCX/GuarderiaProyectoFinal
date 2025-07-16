@@ -8,7 +8,7 @@ namespace Guarderia.Application.Interfaces
 {
     public interface IPersonaAutorizadaService
     {
-        Task<List<dynamic>> ObtenerPersonasAutorizadasPorNiñoAsync(int ninoId);
+        Task<List<dynamic>> ObtenerPersonasAutorizadasPorNinoAsync(int ninoId);
         Task RegistrarPersonaAutorizadaAsync(int ninoId, string cedula, string nombre,
             string direccion, string telefono, string relacion);
         Task EliminarPersonaAutorizadaAsync(int ninoId, string cedula);

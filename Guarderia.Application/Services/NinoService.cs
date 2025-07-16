@@ -10,63 +10,63 @@ namespace Guarderia.Application.Services
 {
     internal class NinoService
     {
-        private readonly INiñoRepository _niñoRepository;
+        private readonly INinoRepository _NinoRepository;
 
-        public NinoService(INiñoRepository niñoRepository)
+        public NinoService(INinoRepository NinoRepository)
         {
-            _niñoRepository = niñoRepository;
+            _NinoRepository = NinoRepository;
         }
 
-        public async Task<Nino> ObtenerNiñoPorIdAsync(int id)
+        public async Task<Nino> ObtenerNinoPorIdAsync(int id)
         {
-            return await _niñoRepository.ObtenerPorIdAsync(id);
+            return await _NinoRepository.ObtenerPorIdAsync(id);
         }
 
-        public async Task<List<Nino>> ObtenerTodosLosNiñosAsync()
+        public async Task<List<Nino>> ObtenerTodosLosNinosAsync()
         {
-            return await _niñoRepository.ObtenerTodosAsync();
+            return await _NinoRepository.ObtenerTodosAsync();
         }
 
-        public async Task<List<Nino>> ObtenerNiñosActivosAsync()
+        public async Task<List<Nino>> ObtenerNinosActivosAsync()
         {
-            var todosLosNiños = await _niñoRepository.ObtenerTodosAsync();
-            return todosLosNiños.Where(n => n.FechaBaja == null).ToList();
+            var todosLosNinos = await _NinoRepository.ObtenerTodosAsync();
+            return todosLosNinos.Where(n => n.FechaBaja == null).ToList();
         }
 
-        public async Task<int> RegistrarNiñoAsync(Nino nino)
+        public async Task<int> RegistrarNinoAsync(Nino nino)
         {
             if (!await ValidarDatosObligatoriosAsync(nino))
             {
-                throw new ArgumentException("Faltan campos obligatorios para el registro del niño");
+                throw new ArgumentException("Faltan campos obligatorios para el registro del Nino");
             }
 
             nino.FechaIngreso = DateTime.Now;
-            nino.FechaBaja = null; // Niño activo
+            nino.FechaBaja = null; // Nino activo
 
-            await _niñoRepository.AgregarAsync(nino);
+            await _NinoRepository.AgregarAsync(nino);
             return nino.Id;
         }
 
-        public async Task ActualizarNiñoAsync(Nino nino)
+        public async Task ActualizarNinoAsync(Nino nino)
         {
             if (!await ValidarDatosObligatoriosAsync(nino))
             {
-                throw new ArgumentException("Faltan campos obligatorios para actualizar el niño");
+                throw new ArgumentException("Faltan campos obligatorios para actualizar el Nino");
             }
 
-            await _niñoRepository.ActualizarAsync(nino);
+            await _NinoRepository.ActualizarAsync(nino);
         }
 
-        public async Task DarBajaNiñoAsync(int niñoId, DateTime fechaBaja)
+        public async Task DarBajaNinoAsync(int NinoId, DateTime fechaBaja)
         {
-            var nino = await _niñoRepository.ObtenerPorIdAsync(niñoId);
+            var nino = await _NinoRepository.ObtenerPorIdAsync(NinoId);
             if (nino == null)
             {
-                throw new ArgumentException("Niño no encontrado");
+                throw new ArgumentException("Nino no encontrado");
             }
 
             nino.FechaBaja = fechaBaja;
-            await _niñoRepository.ActualizarAsync(nino);
+            await _NinoRepository.ActualizarAsync(nino);
         }
 
         public async Task<bool> ValidarDatosObligatoriosAsync(Nino nino)

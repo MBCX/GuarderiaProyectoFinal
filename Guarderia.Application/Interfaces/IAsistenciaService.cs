@@ -9,7 +9,7 @@ namespace Guarderia.Application.Interfaces
 {
     public interface IAsistenciaService
     {
-        Task<List<Asistencia>> ObtenerAsistenciasPorNiñoAsync(int ninoId);
+        Task<List<Asistencia>> ObtenerAsistenciasPorNinoAsync(int ninoId);
         Task<List<Asistencia>> ObtenerAsistenciasPorFechaAsync(DateTime fecha);
         Task RegistrarAsistenciaAsync(int ninoId, DateTime fecha, bool asistio);
         Task<int> CalcularDiasAsistenciaDelMesAsync(int ninoId, int mes, int año);
