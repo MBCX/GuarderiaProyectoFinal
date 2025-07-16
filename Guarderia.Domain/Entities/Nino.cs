@@ -5,18 +5,24 @@ namespace Guarderia.Domain.Entities
     public class Nino
     {
         public int Id { get; set; }
+        public string NumeroMatricula { get; set; }
         public string Nombre { get; set; }
+        public DateTime FechaNacimiento { get; set; }
+        public DateTime FechaIngreso { get; set; }
+        public DateTime? FechaBaja { get; set; }
+        public bool Activo { get; set; }
 
-        // Relación con asistencias
+        public int? ResponsablePagoId { get; set; }
+        public ResponsablePago ResponsablePago { get; set; }
+
+        // Relaciones existentes
         public List<Asistencia> Asistencias { get; set; }
-
-        // Relación con comidas
         public List<Comida> Comidas { get; set; }
+        public List<Alergia> Alergias { get; set; }
 
-        public DateTime FechaIngreso = DateTime.Now;
-
-        public DateTime FechaNacimiento = new DateTime(1980, 1, 1);
-
-        public DateTime? FechaBaja = null;
+        // Nuevas relaciones
+        public List<NinoPersonaAutorizada> PersonasAutorizadas { get; set; }
+        public List<ConsumoMenu> ConsumosMenu { get; set; }
+        public List<CargoMensual> CargosMensuales { get; set; }
     }
 }
