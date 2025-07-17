@@ -7,7 +7,7 @@ using Guarderia.Shared;
 
 namespace Guarderia.Domain.Entities
 {
-    internal class FamiliarOConocido
+    public class FamiliarOConocido
     {
         public string Nombre = String.Empty;
 
@@ -15,7 +15,7 @@ namespace Guarderia.Domain.Entities
         public string Cedula = "000-0000000-0";
         public string Direccion = String.Empty;
 
-        public Telefono[] Contactos;
+        public Telefono[] Contactos = [];
 
         // Relacion entre el familiar y su
         // hijo.
