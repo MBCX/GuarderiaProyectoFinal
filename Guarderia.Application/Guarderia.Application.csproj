@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Mapster" Version="7.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Guarderia.Domain\Guarderia.Domain.csproj" />
     <ProjectReference Include="..\Guarderia.Shared\Guarderia.Shared.csproj" />
   </ItemGroup>
