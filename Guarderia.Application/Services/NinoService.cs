@@ -60,30 +60,26 @@ namespace Guarderia.Application.Services
 
         public async Task<int> RegistrarNinoAsync(Nino nino, int responsablePagoId)
         {
-            // Validar datos obligatorios
             if (!await ValidarDatosObligatoriosAsync(nino))
             {
                 throw new ArgumentException("Faltan campos obligatorios para el registro del nino");
             }
 
-            // Validar que el responsable de pago existe
             var responsablePago = await _responsablePagoRepository.ObtenerPorIdAsync(responsablePagoId);
             if (responsablePago == null)
             {
                 throw new ArgumentException("El responsable de pago especificado no existe");
             }
 
-            // Generar número de matrícula si no se proporciona
             if (string.IsNullOrWhiteSpace(nino.NumeroMatricula))
             {
                 nino.NumeroMatricula = await GenerarNumeroMatriculaAsync();
             }
             else
             {
-                // Validar que la matrícula no existe
                 if (await ExisteMatriculaAsync(nino.NumeroMatricula))
                 {
-                    throw new ArgumentException("Ya existe un nino con ese número de matrícula");
+                    throw new ArgumentException("Ya existe un nino con ese numero de matricula");
                 }
             }
 
@@ -103,14 +99,13 @@ namespace Guarderia.Application.Services
                 throw new ArgumentException("Faltan campos obligatorios para actualizar el nino");
             }
 
-            // Validar que existe
             var ninoExistente = await _ninoRepository.ObtenerPorIdAsync(nino.Id);
             if (ninoExistente == null)
             {
                 throw new ArgumentException("El nino especificado no existe");
             }
 
-            // Validar matrícula única (excluyendo el nino actual)
+            // Validar matricula unica (excluyendo el nino actual)
             if (ninoExistente.NumeroMatricula != nino.NumeroMatricula)
             {
                 if (await ExisteMatriculaAsync(nino.NumeroMatricula))
@@ -171,9 +166,13 @@ namespace Guarderia.Application.Services
         {
             if (nino == null) return false;
 
-            return !string.IsNullOrWhiteSpace(nino.Nombre) &&
-                   nino.FechaNacimiento != default(DateTime) &&
-                   nino.FechaNacimiento <= DateTime.Now.AddYears(-1); // Al menos 1 ano
+            await Task.CompletedTask;
+            return (
+                !string.IsNullOrWhiteSpace(nino.Nombre) &&
+                nino.FechaNacimiento != default(DateTime) &&
+                // Al menos 1 año
+                nino.FechaNacimiento <= DateTime.Now.AddYears(-1)
+            );
         }
 
         public async Task<bool> ExisteMatriculaAsync(string numeroMatricula)
@@ -183,11 +182,11 @@ namespace Guarderia.Application.Services
 
         public async Task<string> GenerarNumeroMatriculaAsync()
         {
-            var ano = DateTime.Now.Year;
-            var contador = await _ninoRepository.ContarActivosAsync() + 1;
+            int year = DateTime.Now.Year;
+            int contador = await _ninoRepository.ContarActivosAsync() + 1;
 
             // Formato: YYYY-NNNN (ej: 2024-0001)
-            return $"{ano}-{contador:D4}";
+            return $"{year}-{contador:D4}";
         }
 
         public async Task<int> ContarNinosActivosAsync()
@@ -205,13 +204,14 @@ namespace Guarderia.Application.Services
             var nino = await _ninoRepository.ObtenerPorIdAsync(id);
             if (nino == null)
             {
-                throw new ArgumentException("Nino no encontrado");
+                throw new ArgumentException("Niño no encontrado");
             }
 
-            // Solo permitir eliminar ninos que no tengan registros asociados o estén inactivos
+            // Solo permitir eliminar niños que no
+            // tengan registros asociados o esten inactivos
             if (nino.Activo)
             {
-                throw new InvalidOperationException("No se puede eliminar un nino activo. Debe darlo de baja primero.");
+                throw new InvalidOperationException("No se puede eliminar un niño activo. Debe darlo de baja primero.");
             }
 
             await _ninoRepository.EliminarAsync(id);

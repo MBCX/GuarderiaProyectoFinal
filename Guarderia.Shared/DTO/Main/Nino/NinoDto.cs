@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
+using Guarderia.Shared.DTO.Main.Pago;
+using Guarderia.Shared.DTO.Main.Alergia;
+using Guarderia.Shared.DTO.Main.PersonaAutorizada;
 
 namespace Guarderia.Shared.DTO.Main.Nino
 {

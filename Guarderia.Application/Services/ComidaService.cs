@@ -51,7 +51,6 @@ namespace Guarderia.Application.Services
 
         public async Task AsignarComidaAsync(int niñoId, DateTime fecha, string tipoComida, decimal costo)
         {
-            // Validar que el niño existe
             if (_ninoRepository != null)
             {
                 var nino = await _ninoRepository.ObtenerPorIdAsync(niñoId);
@@ -77,7 +76,6 @@ namespace Guarderia.Application.Services
                 throw new ArgumentException("El costo no puede ser negativo");
             }
 
-            // Verificar si ya existe registro para ese día y tipo
             if (await YaRegistradaAsync(niñoId, fecha, tipoComida))
             {
                 throw new InvalidOperationException($"Ya existe un registro de {tipoComida} para el niño en la fecha {fecha:dd/MM/yyyy}");
@@ -101,7 +99,6 @@ namespace Guarderia.Application.Services
                 throw new ArgumentException("La comida no puede ser nula");
             }
 
-            // Validar que existe
             var comidaExistente = await _comidaRepository.ObtenerPorIdAsync(comida.Id);
             if (comidaExistente == null)
             {
@@ -151,7 +148,7 @@ namespace Guarderia.Application.Services
                 return await _menuService.ValidarMenuParaNiñoAsync(menuId, niñoId);
             }
 
-            // Si no tenemos servicio de menú, asumimos que es seguro
+            // Asumimos que es seguro si no tenemos servicio de menu.
             return true;
         }
 
