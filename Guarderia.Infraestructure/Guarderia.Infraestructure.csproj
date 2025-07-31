@@ -21,4 +21,8 @@
     <ProjectReference Include="..\Guarderia.Domain\Guarderia.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\Migrations\Primera\" />
+  </ItemGroup>
+
 </Project>
