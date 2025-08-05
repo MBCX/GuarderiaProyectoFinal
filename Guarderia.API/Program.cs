@@ -7,14 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-var app = builder.Build();
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection") ??
         throw new InvalidOperationException("Connection string 'ApplicationDbContext' not found.")
     )
 );
+
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
