@@ -18,7 +18,7 @@ namespace Guarderia.Infraestructure.Repositories
         {
             return await _context.MenuPlatos
                 .Include(mp => mp.Plato)
-                .Where(mp => mp.MenuId == menuId)
+                .Where(mp => mp.Id == menuId)
                 .OrderBy(mp => mp.Orden)
                 .ToListAsync();
         }
@@ -36,7 +36,7 @@ namespace Guarderia.Infraestructure.Repositories
             return await _context.MenuPlatos
                 .Include(mp => mp.Menu)
                 .Include(mp => mp.Plato)
-                .FirstOrDefaultAsync(mp => mp.MenuId == menuId && mp.PlatoId == platoId);
+                .FirstOrDefaultAsync(mp => mp.Id == menuId && mp.PlatoId == platoId);
         }
 
         public async Task AgregarAsync(MenuPlato menuPlato)
@@ -54,7 +54,7 @@ namespace Guarderia.Infraestructure.Repositories
         public async Task EliminarAsync(int menuId, int platoId)
         {
             var relacion = await _context.MenuPlatos
-                .FirstOrDefaultAsync(mp => mp.MenuId == menuId && mp.PlatoId == platoId);
+                .FirstOrDefaultAsync(mp => mp.Id == menuId && mp.PlatoId == platoId);
 
             if (relacion != null)
             {
@@ -66,7 +66,7 @@ namespace Guarderia.Infraestructure.Repositories
         public async Task EliminarPorMenuAsync(int menuId)
         {
             var relaciones = await _context.MenuPlatos
-                .Where(mp => mp.MenuId == menuId)
+                .Where(mp => mp.Id == menuId)
                 .ToListAsync();
 
             _context.MenuPlatos.RemoveRange(relaciones);
@@ -76,7 +76,7 @@ namespace Guarderia.Infraestructure.Repositories
         public async Task<List<Plato>> ObtenerPlatosDeMenuAsync(int menuId)
         {
             return await _context.MenuPlatos
-                .Where(mp => mp.MenuId == menuId)
+                .Where(mp => mp.Id == menuId)
                 .OrderBy(mp => mp.Orden)
                 .Select(mp => mp.Plato)
                 .ToListAsync();
@@ -85,7 +85,7 @@ namespace Guarderia.Infraestructure.Repositories
         public async Task<int> ContarPlatosEnMenuAsync(int menuId)
         {
             return await _context.MenuPlatos
-                .CountAsync(mp => mp.MenuId == menuId);
+                .CountAsync(mp => mp.Id == menuId);
         }
     }
 }

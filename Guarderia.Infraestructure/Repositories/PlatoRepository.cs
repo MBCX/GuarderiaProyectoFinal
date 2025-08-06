@@ -45,7 +45,7 @@ namespace Guarderia.Infraestructure.Repositories
             return await _context.Platos
                 .Include(p => p.Ingredientes)
                     .ThenInclude(pi => pi.Ingrediente)
-                .Where(p => p.Menus.Any(mp => mp.MenuId == menuId))
+                .Where(p => p.Menus.Any(mp => mp.Id == menuId))
                 .OrderBy(p => p.Nombre)
                 .ToListAsync();
         }

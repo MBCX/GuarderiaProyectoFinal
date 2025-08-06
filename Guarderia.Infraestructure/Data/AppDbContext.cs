@@ -153,14 +153,14 @@ namespace Guarderia.Infraestructure.Data
             // Configuración de MenuPlato (relación muchos a muchos)
             modelBuilder.Entity<MenuPlato>(entity =>
             {
-                entity.HasKey(e => new { e.MenuId, e.PlatoId });
+                entity.HasKey(e => new { e.Id, e.PlatoId });
 
                 entity.Property(e => e.Orden).IsRequired();
                 entity.Property(e => e.EsPlatoPrincipal).IsRequired();
 
                 entity.HasOne(e => e.Menu)
                     .WithMany(m => m.Platos)
-                    .HasForeignKey(e => e.MenuId)
+                    .HasForeignKey(e => e.Id)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Plato)

@@ -9,6 +9,8 @@ namespace Guarderia.Domain.Entities
 {
     public class FamiliarOConocido
     {
+        public int Id { get; set; }
+
         public string Nombre = String.Empty;
 
         // Tiene formato de la cedula JCE.

@@ -156,7 +156,7 @@ namespace Guarderia.Application.Services
 
             var menuPlato = new MenuPlato
             {
-                MenuId = menuId,
+                Id = menuId,
                 PlatoId = platoId,
                 Orden = orden,
                 // El primer plato es considerado principal

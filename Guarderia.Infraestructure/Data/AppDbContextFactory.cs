@@ -1,10 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Guarderia.Infraestructure.Data
 {
@@ -13,7 +8,7 @@ namespace Guarderia.Infraestructure.Data
         public AppDbContext CreateDbContext(string[] args = null)
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseSqlServer("");
+            optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=GuarderiaDB;Trusted_Connection=true;MultipleActiveResultSets=true");
             return new AppDbContext(optionsBuilder.Options);
         }
     }
