@@ -1,8 +1,700 @@
 ﻿@page "/reportes"
+@using Guarderia.Shared.DTO.Main.Nino
+@using Guarderia.Shared.DTO.Main.Alergia
+@using Guarderia.Shared.DTO.Main.PersonaAutorizada
+@using Guarderia.Shared.DTO.Main.Pago
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
 
-<h3>Reportes</h3>
+<PageTitle>Reportes - Guardería Digital</PageTitle>
 
-@code
-{
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="display-5 fw-bold text-primary">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Reporte de Niños Registrados
+                </h1>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" @onclick="ExportarPDF">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                    </button>
+                    <button class="btn btn-outline-success" @onclick="ExportarExcel">
+                        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+                    </button>
+                    <button class="btn btn-primary" @onclick="CargarDatos">
+                        <i class="fas fa-sync-alt me-1"></i> Actualizar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    @if (cargando)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 300px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <span class="ms-3 fs-5">Cargando datos...</span>
+        </div>
+    }
+    else if (hayError)
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error:</strong> @mensajeError
+            <button class="btn btn-sm btn-outline-danger ms-3" @onclick="CargarDatos">
+                <i class="fas fa-redo me-1"></i> Reintentar
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Estadísticas Generales -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-primary">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>@ninos.Count</h3>
+                        <p>Total Niños</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-success">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>@ninos.Count(n => n.Activo)</h3>
+                        <p>Activos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>@ninos.Count(n => !n.Activo)</h3>
+                        <p>Inactivos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-danger">
+                    <div class="stat-icon">
+                        <i class="fas fa-allergies"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>@ninos.Count(n => n.Alergias.Any())</h3>
+                        <p>Con Alergias</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Filtrar por estado:</label>
+                        <select class="form-select" @onchange="FiltrarDatos">
+                            <option value="todos">Todos</option>
+                            <option value="activos">Solo Activos</option>
+                            <option value="inactivos">Solo Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Buscar por nombre:</label>
+                        <input type="text" class="form-control" @oninput="FiltrarDatos" 
+                               placeholder="Escribir nombre...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Filtrar por alergias:</label>
+                        <select class="form-select" @onchange="FiltrarDatos">
+                            <option value="todos">Todos</option>
+                            <option value="con-alergias">Con Alergias</option>
+                            <option value="sin-alergias">Sin Alergias</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">
+                            <i class="fas fa-eraser me-1"></i> Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Niños -->
+        <div class="row">
+            @if (ninosFiltrados.Any())
+            {
+                @foreach (var nino in ninosFiltrados)
+                {
+                    <div class="col-xl-6 col-lg-8 col-md-12 mb-4">
+                        <div class="nino-card @(nino.Activo ? "activo" : "inactivo")">
+                            <div class="nino-header">
+                                <div class="nino-avatar">
+                                    <i class="fas fa-child"></i>
+                                </div>
+                                <div class="nino-info">
+                                    <h5 class="nino-nombre">@nino.Nombre</h5>
+                                    <span class="nino-matricula">Matrícula: @nino.NumeroMatricula</span>
+                                    <span class="nino-estado @(nino.Activo ? "estado-activo" : "estado-inactivo")">
+                                        <i class="fas @(nino.Activo ? "fa-check-circle" : "fa-times-circle")"></i>
+                                        @(nino.Activo ? "Activo" : "Inactivo")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="nino-details">
+                                <!-- Información Personal -->
+                                <div class="detail-section">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Información Personal</h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">Fecha de Nacimiento:</small>
+                                            <div>@nino.FechaNacimiento.ToString("dd/MM/yyyy")</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Edad:</small>
+                                            <div>@nino.EdadAnios años</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Fecha de Ingreso:</small>
+                                            <div>@nino.FechaIngreso.ToString("dd/MM/yyyy")</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Días en Guardería:</small>
+                                            <div>@nino.DiasEnGuarderia días</div>
+                                        </div>
+                                        @if (nino.FechaBaja.HasValue)
+                                        {
+                                            <div class="col-12">
+                                                <small class="text-muted">Fecha de Baja:</small>
+                                                <div class="text-danger">@nino.FechaBaja.Value.ToString("dd/MM/yyyy")</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Responsable de Pago -->
+                                @if (nino.ResponsablePago != null)
+                                {
+                                    <div class="detail-section">
+                                        <h6><i class="fas fa-credit-card me-2"></i>Responsable de Pago</h6>
+                                        <div class="responsable-info">
+                                            <div><strong>@nino.ResponsablePago.Nombre</strong></div>
+                                            <div><small>Cédula: @nino.ResponsablePago.Cedula</small></div>
+                                            @if (!string.IsNullOrEmpty(nino.ResponsablePago.Telefono))
+                                            {
+                                                <div><small>Teléfono: @nino.ResponsablePago.Telefono</small></div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(nino.ResponsablePago.CuentaCorriente))
+                                            {
+                                                <div><small>Cuenta: @nino.ResponsablePago.CuentaCorriente</small></div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Alergias -->
+                                <div class="detail-section">
+                                    <h6><i class="fas fa-allergies me-2"></i>Alergias Alimentarias</h6>
+                                    @if (nino.Alergias.Any())
+                                    {
+                                        <div class="alergias-container">
+                                            @foreach (var alergia in nino.Alergias)
+                                            {
+                                                <span class="badge bg-danger me-1 mb-1">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    @alergia.IngredienteNombre
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-success">
+                                            <i class="fas fa-check me-1"></i>
+                                            Sin alergias registradas
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Personas Autorizadas -->
+                                <div class="detail-section">
+                                    <h6><i class="fas fa-user-shield me-2"></i>Personas Autorizadas</h6>
+                                    @if (nino.PersonasAutorizadas.Any())
+                                    {
+                                        <div class="personas-autorizadas">
+                                            @foreach (var persona in nino.PersonasAutorizadas)
+                                            {
+                                                <div class="persona-autorizada">
+                                                    <div class="persona-nombre">@persona.Nombre</div>
+                                                    <div class="persona-detalles">
+                                                        <small>@persona.Cedula - @persona.Relacion</small>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Sin personas autorizadas registradas
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fs-1 text-muted mb-3"></i>
+                        <h4 class="text-muted">No se encontraron niños</h4>
+                        <p class="text-muted">No hay niños que coincidan con los criterios de búsqueda.</p>
+                        <button class="btn btn-primary" @onclick="LimpiarFiltros">
+                            <i class="fas fa-eraser me-1"></i> Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Resumen -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Resumen del Reporte
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Total de niños mostrados:</strong> @ninosFiltrados.Count()</li>
+                            <li><strong>Niños activos:</strong> @ninosFiltrados.Count(n => n.Activo)</li>
+                            <li><strong>Niños inactivos:</strong> @ninosFiltrados.Count(n => !n.Activo)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias.Any())</li>
+                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => !n.Alergias.Any())</li>
+                            <li><strong>Fecha de generación:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, var(--bs-primary-dark, #0d47a1) 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-card.bg-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .stat-card.bg-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    }
+
+    .stat-card.bg-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+    }
+
+    .stat-card .stat-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 3rem;
+        opacity: 0.3;
+    }
+
+    .stat-card .stat-content h3 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1;
+    }
+
+    .stat-card .stat-content p {
+        margin: 0;
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+
+    .nino-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border-left: 4px solid #28a745;
+    }
+
+    .nino-card.inactivo {
+        border-left-color: #dc3545;
+        opacity: 0.8;
+    }
+
+    .nino-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .nino-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nino-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .nino-info {
+        flex: 1;
+    }
+
+    .nino-nombre {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .nino-matricula {
+        display: block;
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nino-estado {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+
+    .estado-activo {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .estado-inactivo {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .nino-details {
+        padding: 1.5rem;
+    }
+
+    .detail-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .detail-section h6 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .responsable-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 3px solid #007bff;
+    }
+
+    .alergias-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .personas-autorizadas {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .persona-autorizada {
+        background: #f8f9fa;
+        padding: 0.75rem;
+        border-radius: 8px;
+        border-left: 3px solid #28a745;
+    }
+
+    .persona-nombre {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .persona-detalles {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+</style>
+
+@code {
+    private List<NinoDto> ninos = new List<NinoDto>();
+    private List<NinoDto> ninosFiltrados = new List<NinoDto>();
+    private bool cargando = true;
+    private bool hayError = false;
+    private string mensajeError = "";
+
+    // Filtros
+    private string filtroEstado = "todos";
+    private string filtroBusqueda = "";
+    private string filtroAlergias = "todos";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            cargando = true;
+            hayError = false;
+            StateHasChanged();
+
+            // TODO: llamadas reales a la API.
+            await Task.Delay(1000);
+
+            ninos = await SimularDatosNinos();
+            FiltrarDatos();
+        }
+        catch (Exception ex)
+        {
+            hayError = true;
+            mensajeError = ex.Message;
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<List<NinoDto>> SimularDatosNinos()
+    {
+        try
+        {
+            // TODO: llamada a API.
+            return await Http.GetFromJsonAsync<List<NinoDto>>("api/ninos");
+        }
+        catch
+        {
+            // Devuelve datos dummy.
+            return new List<NinoDto>
+            {
+                new NinoDto
+                {
+                    Id = 1,
+                    NumeroMatricula = "GD2024001",
+                    Nombre = "Ana María González",
+                    FechaNacimiento = new DateTime(2020, 3, 15),
+                    FechaIngreso = new DateTime(2023, 1, 10),
+                    Activo = true,
+                    ResponsablePago = new ResponsablePagoDto
+                    {
+                        Id = 1,
+                        Cedula = "001-0123456-7",
+                        Nombre = "María González",
+                        Telefono = "809-555-0123",
+                        CuentaCorriente = "12345678901"
+                    },
+                    Alergias = new List<AlergiaDto>
+                    {
+                        new AlergiaDto { Id = 1, IngredienteNombre = "Maní" },
+                        new AlergiaDto { Id = 2, IngredienteNombre = "Leche" }
+                    },
+                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
+                    {
+                        new PersonaAutorizadaDto
+                        {
+                            Id = 1,
+                            Cedula = "001-0123456-7",
+                            Nombre = "María González",
+                            Relacion = "Madre"
+                        },
+                        new PersonaAutorizadaDto
+                        {
+                            Id = 2,
+                            Cedula = "001-0987654-3",
+                            Nombre = "Juan González",
+                            Relacion = "Padre"
+                        }
+                    }
+                },
+                new NinoDto
+                {
+                    Id = 2,
+                    NumeroMatricula = "GD2024002",
+                    Nombre = "Carlos Eduardo Rodríguez",
+                    FechaNacimiento = new DateTime(2019, 8, 22),
+                    FechaIngreso = new DateTime(2022, 9, 5),
+                    Activo = true,
+                    ResponsablePago = new ResponsablePagoDto
+                    {
+                        Id = 2,
+                        Cedula = "001-0234567-8",
+                        Nombre = "Carmen Rodríguez",
+                        Telefono = "809-555-0234"
+                    },
+                    Alergias = new List<AlergiaDto>(),
+                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
+                    {
+                        new PersonaAutorizadaDto
+                        {
+                            Id = 3,
+                            Cedula = "001-0234567-8",
+                            Nombre = "Carmen Rodríguez",
+                            Relacion = "Madre"
+                        }
+                    }
+                },
+                new NinoDto
+                {
+                    Id = 3,
+                    NumeroMatricula = "GD2023015",
+                    Nombre = "Sofia Isabel Martínez",
+                    FechaNacimiento = new DateTime(2021, 1, 10),
+                    FechaIngreso = new DateTime(2023, 3, 1),
+                    FechaBaja = new DateTime(2024, 12, 15),
+                    Activo = false,
+                    ResponsablePago = new ResponsablePagoDto
+                    {
+                        Id = 3,
+                        Cedula = "001-0345678-9",
+                        Nombre = "Pedro Martínez",
+                        Telefono = "809-555-0345"
+                    },
+                    Alergias = new List<AlergiaDto>
+                    {
+                        new AlergiaDto { Id = 3, IngredienteNombre = "Huevos" }
+                    },
+                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
+                    {
+                        new PersonaAutorizadaDto
+                        {
+                            Id = 4,
+                            Cedula = "001-0345678-9",
+                            Nombre = "Pedro Martínez",
+                            Relacion = "Padre"
+                        },
+                        new PersonaAutorizadaDto
+                        {
+                            Id = 5,
+                            Cedula = "001-0456789-0",
+                            Nombre = "Isabel López",
+                            Relacion = "Abuela"
+                        }
+                    }
+                }
+            };
+        }
+    }
+
+    private void FiltrarDatos()
+    {
+        ninosFiltrados = ninos.AsEnumerable<NinoDto>().ToList();
+
+        // Filtro por estado
+        if (filtroEstado == "activos")
+            ninosFiltrados = ninosFiltrados.Where(n => n.Activo).ToList();
+        else if (filtroEstado == "inactivos")
+            ninosFiltrados = ninosFiltrados.Where(n => !n.Activo).ToList();
+
+        // Filtro por búsqueda
+        if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+        {
+            ninosFiltrados = ninosFiltrados.Where(n => 
+                n.Nombre.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
+                n.NumeroMatricula.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+
+        // Filtro por alergias
+        if (filtroAlergias == "con-alergias")
+            ninosFiltrados = ninosFiltrados.Where(n => n.Alergias.Any()).ToList();
+        else if (filtroAlergias == "sin-alergias")
+            ninosFiltrados = ninosFiltrados.Where(n => !n.Alergias.Any()).ToList();
+
+        ninosFiltrados = ninosFiltrados.ToList();
+        StateHasChanged();
+    }
+
+    private void LimpiarFiltros()
+    {
+        filtroEstado = "todos";
+        filtroBusqueda = "";
+        filtroAlergias = "todos";
+        FiltrarDatos();
+    }
+
+    private async Task ExportarPDF()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación a PDF en desarrollo");
+    }
+
+    private async Task ExportarExcel()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación a Excel en desarrollo");
+    }
 }

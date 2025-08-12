@@ -1,0 +1,428 @@
+﻿@page "/soporte"
+
+<PageTitle>Soporte - Guardería Digital</PageTitle>
+
+<div class="soporte-section">
+    <div class="container" data-container>
+        <div class="row">
+            <div class="col-12">
+                <div class="header-section text-center mb-5">
+                    <h1 class="display-4 fw-bold mb-4">
+                        <i class="fas fa-headset"></i> Centro de Soporte
+                    </h1>
+                    <p class="lead">
+                        ¿Necesitas ayuda? Estamos aquí para apoyarte. Envíanos tu consulta
+                        y nuestro equipo te responderá lo antes posible.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                @if (mensajeEnviado)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>¡Mensaje enviado exitosamente!</strong>
+                        Hemos recibido tu consulta y te responderemos pronto.
+                        <button type="button" class="btn-close" @onclick="() => mensajeEnviado = false"></button>
+                    </div>
+                }
+
+                @if (mostrarError)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Error:</strong> @mensajeError
+                        <button type="button" class="btn-close" @onclick="() => mostrarError = false"></button>
+                    </div>
+                }
+
+                <div class="card form-card">
+                    <div class="card-body">
+                        <EditForm Model="@formularioContacto" OnValidSubmit="@EnviarMensaje">
+                            <DataAnnotationsValidator />
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre" class="form-label fw-semibold">
+                                        <i class="fas fa-user text-primary me-2"></i>Nombre Completo *
+                                    </label>
+                                    <InputText id="nombre" type="text" class="form-control form-control-lg"
+                                               @bind-Value="formularioContacto.Nombre"
+                                               placeholder="Ingresa tu nombre completo"
+                                               required
+                                               maxLength="100" />
+                                    <ValidationMessage For="@(() => formularioContacto.Nombre)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label fw-semibold">
+                                        <i class="fas fa-envelope text-primary me-2"></i>Correo Electrónico *
+                                    </label>
+                                    <InputText id="email" type="email" class="form-control form-control-lg"
+                                               @bind-Value="formularioContacto.Email"
+                                               placeholder="tu@email.com"
+                                               required />
+                                    <ValidationMessage For="@(() => formularioContacto.Email)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="telefono" class="form-label fw-semibold">
+                                        <i class="fas fa-phone text-primary me-2"></i>Teléfono *
+                                    </label>
+                                    <InputText id="telefono" type="tel" class="form-control form-control-lg"
+                                               @bind-Value="formularioContacto.Telefono"
+                                               placeholder="8091234567"
+                                               required
+                                               maxLength="9" />
+                                    <ValidationMessage For="@(() => formularioContacto.Telefono)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="asunto" class="form-label fw-semibold">
+                                        <i class="fas fa-tag text-primary me-2"></i>Tipo de Consulta *
+                                    </label>
+                                    <InputSelect id="asunto" class="form-select form-select-lg"
+                                                 @bind-Value="formularioContacto.TipoConsulta"
+                                                 required>
+                                        <option value="">Selecciona un tipo</option>
+                                        <option value="Soporte Técnico">Soporte Técnico</option>
+                                        <option value="Información General">Información General</option>
+                                        <option value="Problema con Registro">Problema con Registro</option>
+                                        <option value="Problema con Reportes">Problema con Reportes</option>
+                                        <option value="Facturación">Facturación</option>
+                                        <option value="Solicitud de Función">Solicitud de Función</option>
+                                        <option value="Otro">Otro</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => formularioContacto.TipoConsulta)" class="text-danger small" />
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="mensaje" class="form-label fw-semibold">
+                                    <i class="fas fa-comment-alt text-primary me-2"></i>Mensaje *
+                                </label>
+                                <InputTextArea id="mensaje" class="form-control" rows="6"
+                                               @bind-Value="formularioContacto.Mensaje"
+                                               placeholder="Describe tu consulta o problema en detalle. Incluye cualquier información adicional que pueda ayudarnos a asistirte mejor."
+                                               required
+                                               maxLength="1000" />
+                                <ValidationMessage For="@(() => formularioContacto.Mensaje)" class="text-danger small" />
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Máximo 1000 caracteres. Caracteres restantes: @(1000 - (formularioContacto.Mensaje?.Length ?? 0))
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <InputCheckbox id="acepto" type="checkbox" class="form-check-input"
+                                                   @bind-Value="formularioContacto.AceptaTerminos"
+                                                   required />
+                                    <label class="form-check-label" for="acepto">
+                                        Acepto que mis datos sean procesados para responder a mi consulta *
+                                    </label>
+                                    <ValidationMessage For="@(() => formularioContacto.AceptaTerminos)" class="text-danger small d-block" />
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                                <button type="button" class="btn btn-outline-secondary btn-lg" @onclick="LimpiarFormulario">
+                                    <i class="fas fa-eraser me-2"></i>Limpiar
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-lg" disabled="@enviando">
+                                    @if (enviando)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Enviando...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        <span>Enviar Mensaje</span>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="info-section py-5 bg-light">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-12 mb-4">
+                <h3 class="fw-bold">Otras Formas de Contactarnos</h3>
+                <p class="text-muted">También puedes comunicarte con nosotros a través de estos medios</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="contact-card h-100 text-center">
+                    <div class="contact-icon text-primary mb-3">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h5 class="fw-bold">Teléfono</h5>
+                    <p class="text-muted mb-2">(809) 555-KIDS</p>
+                    <p class="text-muted small">Lun - Vie: 8:00 AM - 6:00 PM</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="contact-card h-100 text-center">
+                    <div class="contact-icon text-success mb-3">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h5 class="fw-bold">Correo Electrónico</h5>
+                    <p class="text-muted mb-2">soporte@guarderiadigital.com</p>
+                    <p class="text-muted small">Respuesta en 24 horas laborables</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="contact-card h-100 text-center">
+                    <div class="contact-icon text-info mb-3">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h5 class="fw-bold">Oficina</h5>
+                    <p class="text-muted mb-2">Av. Principal #123<br>Santo Domingo, DN</p>
+                    <p class="text-muted small">Cita previa requerida</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .soporte-section {
+        background: linear-gradient(135deg, #019fff 0%, #0077be 100%);
+        color: white;
+        padding: 4rem 0;
+        min-height: 50vh;
+    }
+
+    .header-section {
+        margin-bottom: 3rem;
+    }
+
+    .form-card {
+        background: white;
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        color: #333;
+    }
+
+    .form-card .card-body {
+        padding: 3rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #019fff;
+        box-shadow: 0 0 0 0.2rem rgba(1, 159, 255, 0.25);
+    }
+
+    .form-label {
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #019fff 0%, #6b46c1 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn-outline-secondary {
+        border: 2px solid #6c757d;
+        color: #6c757d;
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        transform: translateY(-2px);
+    }
+
+    .info-section {
+        background-color: #f8f9fa !important;
+    }
+
+    .contact-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .contact-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+
+    .contact-icon {
+        font-size: 2.5rem;
+    }
+
+    .alert {
+        border-radius: 10px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-check-input:checked {
+        background-color: #019fff;
+        border-color: #019fff;
+    }
+
+    .text-primary {
+        color: #019fff !important;
+    }
+
+    .validation-message {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    label[for="acepto"] {
+        cursor: pointer;
+    }
+</style>
+
+@code
+{
+    private FormularioContacto formularioContacto = new();
+    private bool enviando = false;
+    private bool mensajeEnviado = false;
+    private bool mostrarError = false;
+    private string mensajeError = string.Empty;
+
+    private async Task EnviarMensaje()
+    {
+        enviando = true;
+        mostrarError = false;
+
+        try
+        {
+            // TODO: Contectar API
+            await Task.Delay(2000);
+
+            bool condicionesAceptadas = formularioContacto.AceptaTerminos;
+            bool nombreValido = (
+                formularioContacto.Nombre.Length > 0 &&
+                formularioContacto.Nombre.Length < 100
+            );
+            bool emailValido = formularioContacto.Email.Length > 0;
+            bool telefonoValido = (
+                formularioContacto.Telefono.Length > 0 &&
+                formularioContacto.Telefono.Length < 15
+            );
+            bool tipoConsultaValido = formularioContacto.TipoConsulta.Length > 0;
+            bool mensajeValido = (
+                formularioContacto.Mensaje.Length > 0 &&
+                formularioContacto.Mensaje.Length < 1000
+            );
+            bool exito = (
+                // Llenar todos los campos obligatorios
+                condicionesAceptadas &&
+                nombreValido &&
+                emailValido &&
+                telefonoValido &&
+                tipoConsultaValido &&
+                mensajeValido
+            );
+
+            if (exito)
+            {
+                mensajeEnviado = true;
+                formularioContacto = new FormularioContacto(); // Limpiar formulario
+            }
+            else
+            {
+                mostrarError = true;
+
+                // Niveles de mensaje de error
+                if (!condicionesAceptadas)
+                {
+                    mensajeError = "Acepta los terminos para poder enviar el mensaje.";
+                }
+                else if (!nombreValido)
+                {
+                    mensajeError = "El nombre esta vacio o no es valido.";
+                }
+                else if (!emailValido)
+                {
+                    mensajeError = "El correo/email esta vacio o no es valido.";
+                }
+                else if (!telefonoValido)
+                {
+                    mensajeError = "El telefono esta vacio o no es valido.";
+                }
+                else if (!tipoConsultaValido)
+                {
+                    mensajeError = "El tipo de consulta esta vacio o no es valido.";
+                }
+                else if (!mensajeValido)
+                {
+                    mensajeError = "El mensaje esta vacio o no es valido.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mostrarError = true;
+            mensajeError = $"Error inesperado: {ex.Message}";
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        formularioContacto = new FormularioContacto();
+        mensajeEnviado = false;
+        mostrarError = false;
+    }
+
+    public class FormularioContacto
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        //public Telefono Telefono { get; set; }
+        public string Telefono { get; set; } = string.Empty;
+        public string TipoConsulta { get; set; } = string.Empty;
+        public string Mensaje { get; set; } = string.Empty;
+        public bool AceptaTerminos { get; set; } = false;
+    }
+}
