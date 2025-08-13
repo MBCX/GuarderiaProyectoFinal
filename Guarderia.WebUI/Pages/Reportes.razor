@@ -8,11 +8,11 @@
 
 <PageTitle>Reportes - Guardería Digital</PageTitle>
 
-<div class="container-fluid">
+<div class="container-fluid mt-2 p-4">
     <div class="row">
-        <div class="col-12">
+        <div class="col-12" id="ninos-registrados">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="display-5 fw-bold text-primary">
+                <h1 class="display-5 fw-bold text-black">
                     <i class="fas fa-chart-bar me-2"></i>
                     Reporte de Niños Registrados
                 </h1>
@@ -52,8 +52,35 @@
     }
     else
     {
+        <!-- Resumen -->
+        <!-- Este resumen solo se muestra en la exportacion a PDF. -->
+        <div class="card mt-4" id="resumen-pdf">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Resumen del Reporte
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Total de niños mostrados:</strong> @ninosFiltrados.Count()</li>
+                            <li><strong>Niños activos:</strong> @ninosFiltrados.Count(n => n.Activo)</li>
+                            <li><strong>Niños inactivos:</strong> @ninosFiltrados.Count(n => !n.Activo)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias.Any())</li>
+                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => !n.Alergias.Any())</li>
+                            <li><strong>Fecha de generación:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Estadísticas Generales -->
-        <div class="row mb-4">
+        <div class="row mb-4" id="estadisticas">
             <div class="col-md-3">
                 <div class="stat-card bg-primary">
                     <div class="stat-icon">
@@ -101,12 +128,12 @@
         </div>
 
         <!-- Filtros -->
-        <div class="card mb-4">
+        <div class="card mb-4" id="filtros">
             <div class="card-body">
                 <div class="row align-items-end">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Filtrar por estado:</label>
-                        <select class="form-select" @onchange="FiltrarDatos">
+                        <select class="form-select" @bind="filtroEstado" @bind:after="FiltrarDatos">
                             <option value="todos">Todos</option>
                             <option value="activos">Solo Activos</option>
                             <option value="inactivos">Solo Inactivos</option>
@@ -114,12 +141,12 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Buscar por nombre:</label>
-                        <input type="text" class="form-control" @oninput="FiltrarDatos" 
+                        <input type="text" class="form-control" @bind="filtroBusqueda" @bind:after="FiltrarDatos"
                                placeholder="Escribir nombre...">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Filtrar por alergias:</label>
-                        <select class="form-select" @onchange="FiltrarDatos">
+                        <select class="form-select" @bind="filtroAlergias" @bind:after="FiltrarDatos">
                             <option value="todos">Todos</option>
                             <option value="con-alergias">Con Alergias</option>
                             <option value="sin-alergias">Sin Alergias</option>
@@ -277,7 +304,7 @@
         </div>
 
         <!-- Resumen -->
-        <div class="card mt-4">
+        <div class="card mt-4" id="resumen-pdf-actual">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="fas fa-chart-pie me-2"></i>
@@ -690,7 +717,7 @@
 
     private async Task ExportarPDF()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación a PDF en desarrollo");
+        await JSRuntime.InvokeVoidAsync("print");
     }
 
     private async Task ExportarExcel()

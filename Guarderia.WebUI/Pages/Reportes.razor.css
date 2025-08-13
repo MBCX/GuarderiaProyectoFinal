@@ -1,0 +1,22 @@
+﻿#resumen-pdf
+{
+    display: none;
+}
+
+/* Modo de impression de los reportes */
+@media print
+{
+    #ninos-registrados,
+    #estadisticas,
+    #filtros,
+    #resumen-pdf-actual
+    {
+        display: none !important;
+    }
+
+    #resumen-pdf
+    {
+        display: block;
+        margin-bottom: 1rem;
+    }
+}
