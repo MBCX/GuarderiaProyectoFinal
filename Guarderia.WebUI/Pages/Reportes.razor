@@ -1,12 +1,13 @@
 ﻿@page "/reportes"
-@using Guarderia.Shared.DTO.Main.Nino
-@using Guarderia.Shared.DTO.Main.Alergia
-@using Guarderia.Shared.DTO.Main.PersonaAutorizada
-@using Guarderia.Shared.DTO.Main.Pago
-@inject HttpClient Http
+@using System.ComponentModel.DataAnnotations;
+@using Guarderia.Domain.Entities;
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Reportes - Guardería Digital</PageTitle>
+
+<a href="/" class="btn btn-outline-primary m-2 p-2 rounded-circle text-center">
+    <i class="fas fa-arrow-left me-2"></i>
+</a>
 
 <div class="container-fluid mt-2 p-4">
     <div class="row">
@@ -37,7 +38,7 @@
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
-            <span class="ms-3 fs-5">Cargando datos...</span>
+            <span class="ms-3 fs-5">Cargando datos desde LocalStorage...</span>
         </div>
     }
     else if (hayError)
@@ -52,9 +53,27 @@
     }
     else
     {
-        <!-- Resumen -->
-        <!-- Este resumen solo se muestra en la exportacion a PDF. -->
-        <div class="card mt-4" id="resumen-pdf">
+        <!-- Indicador de fuente de datos -->
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-4 d-print-none">
+            <div>
+                <i class="fas fa-database me-2"></i>
+                <strong>Datos cargados</strong> - @ninos.Count registro(s) encontrado(s)
+                @if (ultimaActualizacion.HasValue)
+                {
+                    <br>
+            
+                    <small>Última actualización: @ultimaActualizacion.Value.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                }
+            </div>
+            <div>
+                <a href="/registro" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i> Agregar Niños
+                </a>
+            </div>
+        </div>
+
+        <!-- Resumen para PDF -->
+        <div class="card mt-4 d-none d-print-block" id="resumen-pdf">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="fas fa-chart-pie me-2"></i>
@@ -70,8 +89,8 @@
                     </div>
                     <div class="col-md-6">
                         <ul class="list-unstyled">
-                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias.Any())</li>
-                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => !n.Alergias.Any())</li>
+                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias?.Any() == true)</li>
+                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => n.Alergias?.Any() != true)</li>
                             <li><strong>Fecha de generación:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</li>
                         </ul>
                     </div>
@@ -120,7 +139,7 @@
                         <i class="fas fa-allergies"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>@ninos.Count(n => n.Alergias.Any())</h3>
+                        <h3>@ninos.Count(n => n.Alergias?.Any() == true)</h3>
                         <p>Con Alergias</p>
                     </div>
                 </div>
@@ -194,7 +213,7 @@
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted">Edad:</small>
-                                            <div>@nino.EdadAnios años</div>
+                                            <div>@CalcularEdad(nino.FechaNacimiento) años</div>
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted">Fecha de Ingreso:</small>
@@ -202,7 +221,7 @@
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted">Días en Guardería:</small>
-                                            <div>@nino.DiasEnGuarderia días</div>
+                                            <div>@CalcularDiasEnGuarderia(nino) días</div>
                                         </div>
                                         @if (nino.FechaBaja.HasValue)
                                         {
@@ -226,6 +245,10 @@
                                             {
                                                 <div><small>Teléfono: @nino.ResponsablePago.Telefono</small></div>
                                             }
+                                            @if (!string.IsNullOrEmpty(nino.ResponsablePago.Direccion))
+                                            {
+                                                <div><small>Dirección: @nino.ResponsablePago.Direccion</small></div>
+                                            }
                                             @if (!string.IsNullOrEmpty(nino.ResponsablePago.CuentaCorriente))
                                             {
                                                 <div><small>Cuenta: @nino.ResponsablePago.CuentaCorriente</small></div>
@@ -237,14 +260,14 @@
                                 <!-- Alergias -->
                                 <div class="detail-section">
                                     <h6><i class="fas fa-allergies me-2"></i>Alergias Alimentarias</h6>
-                                    @if (nino.Alergias.Any())
+                                    @if (nino.Alergias?.Any() == true)
                                     {
                                         <div class="alergias-container">
                                             @foreach (var alergia in nino.Alergias)
                                             {
                                                 <span class="badge bg-danger me-1 mb-1">
                                                     <i class="fas fa-exclamation-triangle me-1"></i>
-                                                    @alergia.IngredienteNombre
+                                                    @(alergia.Ingrediente?.Nombre ?? "Ingrediente desconocido")
                                                 </span>
                                             }
                                         </div>
@@ -261,15 +284,19 @@
                                 <!-- Personas Autorizadas -->
                                 <div class="detail-section">
                                     <h6><i class="fas fa-user-shield me-2"></i>Personas Autorizadas</h6>
-                                    @if (nino.PersonasAutorizadas.Any())
+                                    @if (ObtenerPersonasAutorizadasActivas(nino).Any())
                                     {
                                         <div class="personas-autorizadas">
-                                            @foreach (var persona in nino.PersonasAutorizadas)
+                                            @foreach (var persona in ObtenerPersonasAutorizadasActivas(nino))
                                             {
                                                 <div class="persona-autorizada">
                                                     <div class="persona-nombre">@persona.Nombre</div>
                                                     <div class="persona-detalles">
                                                         <small>@persona.Cedula - @persona.Relacion</small>
+                                                        @if (!string.IsNullOrEmpty(persona.Telefono))
+                                                        {
+                                                            <small> - Tel: @persona.Telefono</small>
+                                                        }
                                                     </div>
                                                 </div>
                                             }
@@ -294,17 +321,27 @@
                     <div class="text-center py-5">
                         <i class="fas fa-search fs-1 text-muted mb-3"></i>
                         <h4 class="text-muted">No se encontraron niños</h4>
-                        <p class="text-muted">No hay niños que coincidan con los criterios de búsqueda.</p>
-                        <button class="btn btn-primary" @onclick="LimpiarFiltros">
-                            <i class="fas fa-eraser me-1"></i> Limpiar Filtros
-                        </button>
+                        @if (ninos.Count == 0)
+                        {
+                            <p class="text-muted">No hay niños registrados en el sistema.</p>
+                            <a href="/registro" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Registrar Primer Niño
+                            </a>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No hay niños que coincidan con los criterios de búsqueda.</p>
+                            <button class="btn btn-primary" @onclick="LimpiarFiltros">
+                                <i class="fas fa-eraser me-1"></i> Limpiar Filtros
+                            </button>
+                        }
                     </div>
                 </div>
             }
         </div>
 
         <!-- Resumen -->
-        <div class="card mt-4" id="resumen-pdf-actual">
+        <div class="card mt-4 d-print-none" id="resumen-pantalla">
             <div class="card-body">
                 <h5 class="card-title">
                     <i class="fas fa-chart-pie me-2"></i>
@@ -320,8 +357,8 @@
                     </div>
                     <div class="col-md-6">
                         <ul class="list-unstyled">
-                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias.Any())</li>
-                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => !n.Alergias.Any())</li>
+                            <li><strong>Con alergias:</strong> @ninosFiltrados.Count(n => n.Alergias?.Any() == true)</li>
+                            <li><strong>Sin alergias:</strong> @ninosFiltrados.Count(n => n.Alergias?.Any() != true)</li>
                             <li><strong>Fecha de generación:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</li>
                         </ul>
                     </div>
@@ -343,43 +380,43 @@
         transition: transform 0.3s ease;
     }
 
-    .stat-card:hover {
-        transform: translateY(-5px);
-    }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
 
-    .stat-card.bg-success {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    }
+        .stat-card.bg-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
 
-    .stat-card.bg-warning {
-        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-    }
+        .stat-card.bg-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
 
-    .stat-card.bg-danger {
-        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
-    }
+        .stat-card.bg-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        }
 
-    .stat-card .stat-icon {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 3rem;
-        opacity: 0.3;
-    }
+        .stat-card .stat-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            opacity: 0.3;
+        }
 
-    .stat-card .stat-content h3 {
-        font-size: 2.5rem;
-        font-weight: bold;
-        margin: 0;
-        line-height: 1;
-    }
+        .stat-card .stat-content h3 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0;
+            line-height: 1;
+        }
 
-    .stat-card .stat-content p {
-        margin: 0;
-        font-size: 1rem;
-        opacity: 0.9;
-    }
+        .stat-card .stat-content p {
+            margin: 0;
+            font-size: 1rem;
+            opacity: 0.9;
+        }
 
     .nino-card {
         background: white;
@@ -390,15 +427,15 @@
         border-left: 4px solid #28a745;
     }
 
-    .nino-card.inactivo {
-        border-left-color: #dc3545;
-        opacity: 0.8;
-    }
+        .nino-card.inactivo {
+            border-left-color: #dc3545;
+            opacity: 0.8;
+        }
 
-    .nino-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    }
+        .nino-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
 
     .nino-header {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -466,17 +503,17 @@
         margin-bottom: 1.5rem;
     }
 
-    .detail-section:last-child {
-        margin-bottom: 0;
-    }
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
 
-    .detail-section h6 {
-        color: #495057;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e9ecef;
-    }
+        .detail-section h6 {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
 
     .responsable-info {
         background: #f8f9fa;
@@ -515,9 +552,15 @@
     }
 </style>
 
-@code {
-    private List<NinoDto> ninos = new List<NinoDto>();
-    private List<NinoDto> ninosFiltrados = new List<NinoDto>();
+@code
+{
+    // Constante para la clave de localStorage
+    private const string STORAGE_KEY = "guarderia_ninos_data";
+
+    private List<Nino> ninos = new List<Nino>();
+    private List<Nino> ninosFiltrados = new List<Nino>();
+    private DateTime? ultimaActualizacion;
+
     private bool cargando = true;
     private bool hayError = false;
     private string mensajeError = "";
@@ -532,6 +575,8 @@
         await CargarDatos();
     }
 
+    #region Métodos de LocalStorage
+
     private async Task CargarDatos()
     {
         try
@@ -540,16 +585,14 @@
             hayError = false;
             StateHasChanged();
 
-            // TODO: llamadas reales a la API.
-            await Task.Delay(1000);
-
-            ninos = await SimularDatosNinos();
+            await CargarDatosDesdeStorage();
             FiltrarDatos();
         }
         catch (Exception ex)
         {
             hayError = true;
-            mensajeError = ex.Message;
+            mensajeError = $"Error al cargar los datos: {ex.Message}";
+            Console.WriteLine($"Error en CargarDatos: {ex.Message}");
         }
         finally
         {
@@ -558,129 +601,54 @@
         }
     }
 
-    private async Task<List<NinoDto>> SimularDatosNinos()
+    private async Task CargarDatosDesdeStorage()
     {
         try
         {
-            // TODO: llamada a API.
-            return await Http.GetFromJsonAsync<List<NinoDto>>("api/ninos");
-        }
-        catch
-        {
-            // Devuelve datos dummy.
-            return new List<NinoDto>
+            var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", STORAGE_KEY);
+
+            if (!string.IsNullOrEmpty(json))
             {
-                new NinoDto
+                var datos = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+                if (datos.TryGetProperty("Ninos", out var ninosJson))
                 {
-                    Id = 1,
-                    NumeroMatricula = "GD2024001",
-                    Nombre = "Ana María González",
-                    FechaNacimiento = new DateTime(2020, 3, 15),
-                    FechaIngreso = new DateTime(2023, 1, 10),
-                    Activo = true,
-                    ResponsablePago = new ResponsablePagoDto
-                    {
-                        Id = 1,
-                        Cedula = "001-0123456-7",
-                        Nombre = "María González",
-                        Telefono = "809-555-0123",
-                        CuentaCorriente = "12345678901"
-                    },
-                    Alergias = new List<AlergiaDto>
-                    {
-                        new AlergiaDto { Id = 1, IngredienteNombre = "Maní" },
-                        new AlergiaDto { Id = 2, IngredienteNombre = "Leche" }
-                    },
-                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
-                    {
-                        new PersonaAutorizadaDto
-                        {
-                            Id = 1,
-                            Cedula = "001-0123456-7",
-                            Nombre = "María González",
-                            Relacion = "Madre"
-                        },
-                        new PersonaAutorizadaDto
-                        {
-                            Id = 2,
-                            Cedula = "001-0987654-3",
-                            Nombre = "Juan González",
-                            Relacion = "Padre"
-                        }
-                    }
-                },
-                new NinoDto
+                    ninos = System.Text.Json.JsonSerializer.Deserialize<List<Nino>>(ninosJson.GetRawText()) ?? new List<Nino>();
+                }
+
+                if (datos.TryGetProperty("UltimaActualizacion", out var fechaJson))
                 {
-                    Id = 2,
-                    NumeroMatricula = "GD2024002",
-                    Nombre = "Carlos Eduardo Rodríguez",
-                    FechaNacimiento = new DateTime(2019, 8, 22),
-                    FechaIngreso = new DateTime(2022, 9, 5),
-                    Activo = true,
-                    ResponsablePago = new ResponsablePagoDto
+                    if (DateTime.TryParse(fechaJson.GetString(), out var fecha))
                     {
-                        Id = 2,
-                        Cedula = "001-0234567-8",
-                        Nombre = "Carmen Rodríguez",
-                        Telefono = "809-555-0234"
-                    },
-                    Alergias = new List<AlergiaDto>(),
-                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
-                    {
-                        new PersonaAutorizadaDto
-                        {
-                            Id = 3,
-                            Cedula = "001-0234567-8",
-                            Nombre = "Carmen Rodríguez",
-                            Relacion = "Madre"
-                        }
-                    }
-                },
-                new NinoDto
-                {
-                    Id = 3,
-                    NumeroMatricula = "GD2023015",
-                    Nombre = "Sofia Isabel Martínez",
-                    FechaNacimiento = new DateTime(2021, 1, 10),
-                    FechaIngreso = new DateTime(2023, 3, 1),
-                    FechaBaja = new DateTime(2024, 12, 15),
-                    Activo = false,
-                    ResponsablePago = new ResponsablePagoDto
-                    {
-                        Id = 3,
-                        Cedula = "001-0345678-9",
-                        Nombre = "Pedro Martínez",
-                        Telefono = "809-555-0345"
-                    },
-                    Alergias = new List<AlergiaDto>
-                    {
-                        new AlergiaDto { Id = 3, IngredienteNombre = "Huevos" }
-                    },
-                    PersonasAutorizadas = new List<PersonaAutorizadaDto>
-                    {
-                        new PersonaAutorizadaDto
-                        {
-                            Id = 4,
-                            Cedula = "001-0345678-9",
-                            Nombre = "Pedro Martínez",
-                            Relacion = "Padre"
-                        },
-                        new PersonaAutorizadaDto
-                        {
-                            Id = 5,
-                            Cedula = "001-0456789-0",
-                            Nombre = "Isabel López",
-                            Relacion = "Abuela"
-                        }
+                        ultimaActualizacion = fecha;
                     }
                 }
-            };
+
+                Console.WriteLine($"Datos cargados desde localStorage: {ninos.Count} niños");
+            }
+            else
+            {
+                // Si no hay datos guardados, mostrar mensaje
+                ninos = new List<Nino>();
+                Console.WriteLine("No se encontraron datos en localStorage");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando desde localStorage: {ex.Message}");
+            // Si hay error, inicializar con lista vacía
+            ninos = new List<Nino>();
+            mensajeError = "No se pudieron cargar los datos desde el almacenamiento local. Es posible que no haya datos guardados.";
         }
     }
 
+    #endregion
+
+    #region Métodos de Filtrado
+
     private void FiltrarDatos()
     {
-        ninosFiltrados = ninos.AsEnumerable<NinoDto>().ToList();
+        ninosFiltrados = ninos.AsEnumerable().ToList();
 
         // Filtro por estado
         if (filtroEstado == "activos")
@@ -691,7 +659,7 @@
         // Filtro por búsqueda
         if (!string.IsNullOrWhiteSpace(filtroBusqueda))
         {
-            ninosFiltrados = ninosFiltrados.Where(n => 
+            ninosFiltrados = ninosFiltrados.Where(n =>
                 n.Nombre.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase) ||
                 n.NumeroMatricula.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase)
             ).ToList();
@@ -699,11 +667,10 @@
 
         // Filtro por alergias
         if (filtroAlergias == "con-alergias")
-            ninosFiltrados = ninosFiltrados.Where(n => n.Alergias.Any()).ToList();
+            ninosFiltrados = ninosFiltrados.Where(n => n.Alergias?.Any() == true).ToList();
         else if (filtroAlergias == "sin-alergias")
-            ninosFiltrados = ninosFiltrados.Where(n => !n.Alergias.Any()).ToList();
+            ninosFiltrados = ninosFiltrados.Where(n => n.Alergias?.Any() != true).ToList();
 
-        ninosFiltrados = ninosFiltrados.ToList();
         StateHasChanged();
     }
 
@@ -715,13 +682,174 @@
         FiltrarDatos();
     }
 
+    #endregion
+
+    #region Métodos de Exportación
+
     private async Task ExportarPDF()
     {
-        await JSRuntime.InvokeVoidAsync("print");
+        try
+        {
+            // Ocultar elementos que no queremos en el PDF
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.querySelectorAll('.d-print-none').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.d-none.d-print-block').forEach(el => el.style.display = 'block');
+            ");
+
+            // Imprimir
+            await JSRuntime.InvokeVoidAsync("print");
+
+            // Restaurar elementos después de la impresión
+            await Task.Delay(1000); // Dar tiempo para que se complete la impresión
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.querySelectorAll('.d-print-none').forEach(el => el.style.display = '');
+                document.querySelectorAll('.d-none.d-print-block').forEach(el => el.style.display = 'none');
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al exportar PDF: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Error al generar el PDF. Intente nuevamente.");
+        }
     }
 
     private async Task ExportarExcel()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Funcionalidad de exportación a Excel en desarrollo");
+        try
+        {
+            // Crear datos en formato CSV para exportar como Excel
+            var csv = GenerarCSV();
+            var fecha = DateTime.Now.ToString("yyyy-MM-dd_HH-mm");
+            var filename = $"reporte_ninos_{fecha}.csv";
+
+            await JSRuntime.InvokeVoidAsync("downloadFile", filename, csv);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al exportar Excel: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Error al generar el archivo Excel. Intente nuevamente.");
+        }
     }
+
+    private string GenerarCSV()
+    {
+        var sb = new System.Text.StringBuilder();
+
+        // Encabezados
+        sb.AppendLine("Matrícula,Nombre,Fecha Nacimiento,Edad,Fecha Ingreso,Estado,Fecha Baja,Responsable Pago,Cédula Responsable,Teléfono,Alergias,Personas Autorizadas");
+
+        // Datos
+        foreach (var nino in ninosFiltrados)
+        {
+            var edad = CalcularEdad(nino.FechaNacimiento);
+            var fechaBaja = nino.FechaBaja?.ToString("dd/MM/yyyy") ?? "";
+            var responsable = nino.ResponsablePago?.Nombre ?? "";
+            var cedulaResponsable = nino.ResponsablePago?.Cedula ?? "";
+            var telefono = nino.ResponsablePago?.Telefono ?? "";
+            var alergias = nino.Alergias?.Any() == true
+                ? string.Join("; ", nino.Alergias.Select(a => a.Ingrediente?.Nombre ?? ""))
+                : "Sin alergias";
+            var personasAutorizadas = ObtenerPersonasAutorizadasActivas(nino).Any()
+                ? string.Join("; ", ObtenerPersonasAutorizadasActivas(nino).Select(p => $"{p.Nombre} ({p.Relacion})"))
+                : "Sin personas autorizadas";
+
+            sb.AppendLine($"\"{nino.NumeroMatricula}\",\"{nino.Nombre}\",\"{nino.FechaNacimiento:dd/MM/yyyy}\",{edad},\"{nino.FechaIngreso:dd/MM/yyyy}\",\"{(nino.Activo ? "Activo" : "Inactivo")}\",\"{fechaBaja}\",\"{responsable}\",\"{cedulaResponsable}\",\"{telefono}\",\"{alergias}\",\"{personasAutorizadas}\"");
+        }
+
+        return sb.ToString();
+    }
+
+    #endregion
+
+    #region Métodos Auxiliares
+
+    private int CalcularEdad(DateTime fechaNacimiento)
+    {
+        var edad = DateTime.Today.Year - fechaNacimiento.Year;
+        if (fechaNacimiento.Date > DateTime.Today.AddYears(-edad)) edad--;
+        return edad;
+    }
+
+    private int CalcularDiasEnGuarderia(Nino nino)
+    {
+        var fechaFin = nino.FechaBaja ?? DateTime.Today;
+        return (fechaFin - nino.FechaIngreso).Days;
+    }
+
+    private List<PersonaAutorizada> ObtenerPersonasAutorizadasActivas(Nino nino)
+    {
+        return nino.PersonasAutorizadas?
+            .Where(pa => pa.Activa)
+            .Select(pa => pa.PersonaAutorizada)
+            .Where(p => p != null)
+            .ToList() ?? new List<PersonaAutorizada>();
+    }
+
+    private string ObtenerNombresAlergias(Nino nino)
+    {
+        if (nino.Alergias?.Any() != true)
+            return "Sin alergias";
+
+        return string.Join(", ", nino.Alergias.Select(a => a.Ingrediente?.Nombre ?? "").Where(n => !string.IsNullOrEmpty(n)));
+    }
+
+    private string ObtenerEstadoTexto(Nino nino)
+    {
+        if (nino.Activo)
+            return "Activo";
+
+        if (nino.FechaBaja.HasValue)
+            return $"Baja: {nino.FechaBaja.Value:dd/MM/yyyy}";
+
+        return "Inactivo";
+    }
+
+    #endregion
 }
+
+<script>
+    // Función para descargar archivos (para exportar datos)
+    window.downloadFile = function(filename, content) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
+
+    // Función para preparar la impresión
+    window.prepareForPrint = function() {
+        // Ocultar elementos que no queremos en el PDF
+        document.querySelectorAll('.d-print-none').forEach(el => {
+            el.style.display = 'none';
+        });
+
+        // Mostrar elementos específicos para PDF
+        document.querySelectorAll('.d-none.d-print-block').forEach(el => {
+            el.style.display = 'block';
+        });
+    };
+
+    // Función para restaurar después de la impresión
+    window.restoreAfterPrint = function() {
+        // Restaurar elementos después de la impresión
+        document.querySelectorAll('.d-print-none').forEach(el => {
+            el.style.display = '';
+        });
+
+        document.querySelectorAll('.d-none.d-print-block').forEach(el => {
+            el.style.display = 'none';
+        });
+    };
+
+    // Escuchar eventos de impresión
+    window.addEventListener('beforeprint', function() {
+        window.prepareForPrint();
+    });
+
+    window.addEventListener('afterprint', function() {
+        window.restoreAfterPrint();
+    });
+</script>

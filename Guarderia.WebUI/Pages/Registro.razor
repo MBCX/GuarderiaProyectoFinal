@@ -1,8 +1,13 @@
 ﻿@page "/registro"
 @using System.ComponentModel.DataAnnotations;
 @using Guarderia.Domain.Entities;
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Guardería Digital - Registro de Niños</PageTitle>
+
+<a href="/" class="btn btn-outline-primary m-2 p-2 rounded-circle text-center">
+    <i class="fas fa-arrow-left me-2"></i>
+</a>
 
 <div class="container-fluid py-4">
     <!-- Header Section -->
@@ -13,9 +18,17 @@
                     <h1 class="h3 mb-0"><i class="fas fa-child text-primary"></i> Gestión de Niños</h1>
                     <p class="text-muted mb-0">Registro y administración de matrículas</p>
                 </div>
-                <button class="btn btn-primary" @onclick="ShowRegistroForm">
-                    <i class="fas fa-plus"></i> Nuevo Registro
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-info" @onclick="ExportarDatos">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                    <button class="btn btn-outline-warning" @onclick="ImportarDatos">
+                        <i class="fas fa-upload"></i> Importar
+                    </button>
+                    <button class="btn btn-primary" @onclick="ShowRegistroForm">
+                        <i class="fas fa-plus"></i> Nuevo Registro
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -100,6 +113,21 @@
         </div>
     </div>
 
+    <!-- Estado de Datos -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Datos guardados automáticamente</strong> - Última actualización: @ultimaActualizacion.ToString("dd/MM/yyyy HH:mm:ss")
+                </div>
+                <button class="btn btn-outline-danger btn-sm" @onclick="LimpiarDatos">
+                    <i class="fas fa-trash"></i> Limpiar Todo
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Lista de Niños -->
     <div class="card">
         <div class="card-header">
@@ -162,9 +190,6 @@
                                             <button class="btn btn-outline-primary" @onclick="() => EditarNino(nino)">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-outline-info" @onclick="() => VerDetalles(nino)">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
                                             @if (nino.Activo)
                                             {
                                                 <button class="btn btn-outline-danger" @onclick="() => DarBaja(nino)">
@@ -199,7 +224,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-child"></i> 
+                        <i class="fas fa-child"></i>
                         @(ninoActual.Id == 0 ? "Nuevo Registro" : "Editar Niño")
                     </h5>
                     <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
@@ -207,20 +232,20 @@
                 <div class="modal-body">
                     <EditForm Model="ninoActual" OnValidSubmit="GuardarNino">
                         <DataAnnotationsValidator />
-                        
+
                         <!-- Datos del Niño -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Número de Matrícula *</label>
-                                    <InputText class="form-control" @bind-Value="ninoActual.NumeroMatricula" />
+                                    <InputText class="form-control" @bind-Value="ninoActual.NumeroMatricula" required />
                                     <ValidationMessage For="@(() => ninoActual.NumeroMatricula)" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Nombre Completo *</label>
-                                    <InputText class="form-control" @bind-Value="ninoActual.Nombre" />
+                                    <InputText class="form-control" @bind-Value="ninoActual.Nombre" required />
                                     <ValidationMessage For="@(() => ninoActual.Nombre)" />
                                 </div>
                             </div>
@@ -230,14 +255,14 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fecha de Nacimiento *</label>
-                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaNacimiento" />
+                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaNacimiento" required />
                                     <ValidationMessage For="@(() => ninoActual.FechaNacimiento)" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Fecha de Ingreso *</label>
-                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaIngreso" />
+                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaIngreso" required />
                                     <ValidationMessage For="@(() => ninoActual.FechaIngreso)" />
                                 </div>
                             </div>
@@ -249,13 +274,13 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Cédula *</label>
-                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Cedula" placeholder="001-1234567-8" />
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Cedula" placeholder="00112345678" required type="number" max="99999999999" />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Nombre *</label>
-                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Nombre" />
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Nombre" required />
                                 </div>
                             </div>
                         </div>
@@ -264,20 +289,20 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Teléfono *</label>
-                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Telefono" placeholder="809-555-0000" />
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Telefono" placeholder="809-555-0000" required type="telephone" />
                                 </div>
                             </div>
                             <div class="col-md-8">
                                 <div class="mb-3">
-                                    <label class="form-label">Dirección</label>
-                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Direccion" />
+                                    <label class="form-label">Dirección *</label>
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Direccion" required />
                                 </div>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Cuenta Corriente</label>
-                            <InputText class="form-control" @bind-Value="responsablePagoActual.CuentaCorriente" placeholder="Número de cuenta para débitos automáticos" />
+                            <InputText class="form-control" @bind-Value="responsablePagoActual.CuentaCorriente" placeholder="Número de cuenta para débitos automáticos" required />
                         </div>
 
                         <!-- Persona Autorizada -->
@@ -286,13 +311,13 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Cédula *</label>
-                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Cedula" placeholder="001-1234567-8" />
+                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Cedula" placeholder="001-1234567-8" required />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Nombre *</label>
-                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Nombre" />
+                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Nombre" required />
                                 </div>
                             </div>
                         </div>
@@ -301,7 +326,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Relación con el Niño *</label>
-                                    <InputSelect class="form-select" @bind-Value="personaAutorizadaActual.Relacion">
+                                    <InputSelect class="form-select" @bind-Value="personaAutorizadaActual.Relacion" required>
                                         <option value="">Seleccionar relación</option>
                                         <option value="Madre">Madre</option>
                                         <option value="Padre">Padre</option>
@@ -361,17 +386,46 @@
     </div>
 }
 
+<script>
+    // Función para descargar archivos (para exportar datos)
+    window.downloadFile = function(filename, content) {
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+        element.setAttribute('download', filename);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
+
+    // Función para manejar la importación de archivos
+    window.handleFileImport = function(inputElement, dotNetHelper) {
+        const file = inputElement.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                dotNetHelper.invokeMethodAsync('ProcessImportedFile', e.target.result);
+            };
+            reader.readAsText(file);
+        }
+    };
+</script>
 
 @code
 {
+    private const string STORAGE_KEY = "guarderia_ninos_data";
+
     // Variables de estado usando las entidades reales
-    private List<Nino> ninos = new();
-    private List<Nino> ninosFiltrados = new();
+    private List<Nino> ninos = new List<Nino>();
+    private List<Nino> ninosFiltrados = new List<Nino>();
     private bool mostrarFormulario = false;
     private Nino ninoActual = new();
     private ResponsablePago responsablePagoActual = new();
     private PersonaAutorizada personaAutorizadaActual = new();
-    private List<Alergia> alergiasActuales = new();
+    private List<Alergia> alergiasActuales = new List<Alergia>();
+
+    // Variable para mostrar última actualización
+    private DateTime ultimaActualizacion = DateTime.Now;
 
     // Filtros
     private string filtroTexto = "";
@@ -379,20 +433,141 @@
     private string filtroAlergia = "";
     private string nuevaAlergia = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        CargarDatosIniciales();
-        ninosFiltrados = ninos;
+        await CargarDatosDesdeStorage();
+        FiltrarNinos();
+        StateHasChanged();
     }
 
-    private void CargarDatosIniciales()
+    #region Métodos de LocalStorage
+
+    private async Task GuardarDatosEnStorage()
     {
         try
         {
-            // Todo: API.
+            var datosParaGuardar = new
+            {
+                Ninos = ninos,
+                UltimaActualizacion = DateTime.Now
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(datosParaGuardar, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+            });
+
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", STORAGE_KEY, json);
+            ultimaActualizacion = DateTime.Now;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            // En caso de error, continuar sin localStorage
+            Console.WriteLine($"Error guardando en localStorage: {ex.Message}");
+        }
+    }
+
+    private async Task CargarDatosDesdeStorage()
+    {
+        try
+        {
+            var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", STORAGE_KEY);
+
+            if (!string.IsNullOrEmpty(json))
+            {
+                var datos = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json);
+
+                if (datos.TryGetProperty("Ninos", out var ninosJson))
+                {
+                    ninos = System.Text.Json.JsonSerializer.Deserialize<List<Nino>>(ninosJson.GetRawText()) ?? new List<Nino>();
+                }
+
+                if (datos.TryGetProperty("UltimaActualizacion", out var fechaJson))
+                {
+                    if (DateTime.TryParse(fechaJson.GetString(), out var fecha))
+                    {
+                        ultimaActualizacion = fecha;
+                    }
+                }
+
+                Console.WriteLine($"Datos cargados desde localStorage: {ninos.Count} niños");
+            }
+            else
+            {
+                // Si no hay datos guardados, cargar datos de ejemplo
+                await CargarDatosIniciales();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando desde localStorage: {ex.Message}");
+            // Si hay error, cargar datos de ejemplo
+            await CargarDatosIniciales();
+        }
+    }
+
+    private async Task LimpiarDatos()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", STORAGE_KEY);
+            ninos.Clear();
+            ninosFiltrados.Clear();
+            ultimaActualizacion = DateTime.Now;
+            StateHasChanged();
+
+            await GuardarDatosEnStorage();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error limpiando localStorage: {ex.Message}");
+        }
+    }
+
+    private async Task ExportarDatos()
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(ninos, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+            });
+
+            var fecha = DateTime.Now.ToString("yyyy-MM-dd_HH-mm");
+            var filename = $"guarderia_datos_{fecha}.json";
+
+            await JSRuntime.InvokeVoidAsync("downloadFile", filename, json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error exportando datos: {ex.Message}");
+        }
+    }
+
+    private async Task ImportarDatos()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "alert",
+                "Implementar input file"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error importando datos: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    private async Task CargarDatosIniciales()
+    {
+        try
+        {
+            // Todo: API en el futuro
             ninos = new List<Nino>
             {
                 new Nino
@@ -555,6 +730,12 @@
                     CargosMensuales = new List<CargoMensual>()
                 }
             };
+
+            await GuardarDatosEnStorage();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando datos iniciales: {ex.Message}");
         }
     }
 
@@ -641,13 +822,7 @@
         mostrarFormulario = true;
     }
 
-    private void VerDetalles(Nino nino)
-    {
-        // Implementar navegación a página de detalles
-        // NavigationManager.NavigateTo($"/nino/{nino.Id}");
-    }
-
-    private void DarBaja(Nino nino)
+    private async Task DarBaja(Nino nino)
     {
         nino.Activo = false;
         nino.FechaBaja = DateTime.Today;
@@ -659,6 +834,8 @@
             autorizacion.FechaRevocacion = DateTime.Today;
         }
 
+        await GuardarDatosEnStorage();
+        FiltrarNinos();
         StateHasChanged();
     }
 
@@ -667,7 +844,7 @@
         mostrarFormulario = false;
     }
 
-    private void GuardarNino()
+    private async Task GuardarNino()
     {
         if (ninoActual.Id == 0)
         {
@@ -736,14 +913,23 @@
             }
         }
 
+        // Guardar en localStorage después de cualquier cambio
+        await GuardarDatosEnStorage();
         FiltrarNinos();
         CerrarFormulario();
     }
 
     private async Task AgregarAlergia()
     {
-        if (!string.IsNullOrWhiteSpace(nuevaAlergia) &&
-            !alergiasActuales.Any(a => a.Ingrediente?.Nombre?.Equals(nuevaAlergia, StringComparison.OrdinalIgnoreCase) == true))
+        await Task.CompletedTask;
+
+        if (
+            !string.IsNullOrWhiteSpace(nuevaAlergia) &&
+            !alergiasActuales.Any(a => a.Ingrediente?.Nombre?.Equals(
+                nuevaAlergia,
+                StringComparison.OrdinalIgnoreCase
+            ) == true)
+        )
         {
             var nuevaAlergiaEntity = new Alergia
             {

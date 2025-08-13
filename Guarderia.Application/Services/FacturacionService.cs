@@ -198,14 +198,150 @@ namespace Guarderia.Application.Services
 
         public async Task<decimal> CalcularDescuentosAsync(int ninoId, int mes, int año)
         {
-            // TODO: implementar descuentos por:
-            // - Hermanos en la guardería
-            // - Problemas económicos documentados
-            // - Promociones especiales
-            // - etc.
+            decimal totalDescuentos = 0;
 
+            try
+            {
+                // 1. Descuento por hermanos en la guardería
+                var descuentoHermanos = await CalcularDescuentoPorHermanosAsync(ninoId);
+                totalDescuentos += descuentoHermanos;
+
+                // 3. Descuento por promociones especiales
+                var descuentoPromociones = await CalcularDescuentoPorPromocionesAsync(ninoId, mes, año);
+                totalDescuentos += descuentoPromociones;
+
+                // 4. Descuento por antigüedad en la guardería
+                var descuentoAntiguedad = await CalcularDescuentoPorAntiguedadAsync(ninoId);
+                totalDescuentos += descuentoAntiguedad;
+
+                return totalDescuentos;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+
+                // En caso de error, devolver 0 para no afectar la facturación
+                return 0;
+            }
+        }
+
+        private async Task<decimal> CalcularDescuentoPorHermanosAsync(int ninoId)
+        {
+            if (_ninoRepository == null)
+            {
+                return 0;
+            }
+
+            try
+            {
+                var nino = await _ninoRepository.ObtenerPorIdAsync(ninoId);
+                if (nino?.ResponsablePago == null)
+                {
+                    return 0;
+                }
+
+                // Obtener todos los niños activos del mismo responsable de pago
+                var hermanos = await _ninoRepository.ObtenerPorResponsablePagoAsync(
+                    (int)nino?.ResponsablePagoId
+                );
+                var hermanosActivos = hermanos.Where(h => h.Activo && h.Id != ninoId).Count();
+
+                // Aplicar descuento escalonado
+                decimal porcentajeDescuento = hermanosActivos switch
+                {
+                    1 => 0.10m,  // 10% descuento por 1 hermano
+                    2 => 0.15m,  // 15% descuento por 2 hermanos
+                    3 => 0.20m,  // 20% descuento por 3 hermanos
+                    >= 4 => 0.25m, // 25% descuento por 4 o más hermanos
+                    _ => 0m
+                };
+
+                if (porcentajeDescuento > 0)
+                {
+                    var costoFijo = await CalcularCostoFijoAsync(DateTime.Now.Month, DateTime.Now.Year);
+                    return costoFijo * porcentajeDescuento;
+                }
+
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private async Task<decimal> CalcularDescuentoPorPromocionesAsync(int ninoId, int mes, int año)
+        {
             await Task.CompletedTask;
-            return 0;
+
+            // Descuentos por promociones especiales según la fecha
+            DateTime fechaReferencia = new DateTime(año, mes, 1);
+            decimal descuentoPromocional = 0;
+
+            // Promoción de inicio de año (Enero-Febrero)
+            if (mes == 1 || mes == 2)
+            {
+                decimal costoFijo = await CalcularCostoFijoAsync(mes, año);
+                descuentoPromocional = costoFijo * 0.05m; // 5% descuento
+            }
+
+            // Promoción de mitad de año (Junio-Julio)
+            if (mes == 6 || mes == 7)
+            {
+                decimal costoFijo = await CalcularCostoFijoAsync(mes, año);
+                descuentoPromocional = costoFijo * 0.03m; // 3% descuento
+            }
+
+            // Promoción navideña (Diciembre)
+            if (mes == 12)
+            {
+                decimal costoFijo = await CalcularCostoFijoAsync(mes, año);
+                descuentoPromocional = costoFijo * 0.08m; // 8% descuento
+            }
+
+            return descuentoPromocional;
+        }
+
+        private async Task<decimal> CalcularDescuentoPorAntiguedadAsync(int ninoId)
+        {
+            if (_ninoRepository == null) return 0;
+
+            try
+            {
+                var nino = await _ninoRepository.ObtenerPorIdAsync(ninoId);
+                if (nino == null)
+                {
+                    return 0;
+                }
+
+                // Calcular años de antigüedad
+                var tiempoEnGuarderia = DateTime.Now - nino.FechaIngreso;
+                var añosAntiguedad = (int)(tiempoEnGuarderia.TotalDays / 365.25);
+
+                // Aplicar descuento por antigüedad
+                decimal porcentajeDescuento = añosAntiguedad switch
+                {
+                    >= 3 => 0.15m, // 15% descuento por 3 o más años
+                    2 => 0.10m,    // 10% descuento por 2 años
+                    1 => 0.05m,    // 5% descuento por 1 año
+                    _ => 0m
+                };
+
+                if (porcentajeDescuento > 0)
+                {
+                    var costoFijo = await CalcularCostoFijoAsync(
+                        DateTime.Now.Month,
+                        DateTime.Now.Year
+                    );
+                    return costoFijo * porcentajeDescuento;
+                }
+
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public async Task<List<CargoMensual>> GenerarEstadoCuentaAsync(int responsablePagoId, int año)

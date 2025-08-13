@@ -19,4 +19,21 @@
         display: block;
         margin-bottom: 1rem;
     }
+
+    .d-print-none {
+        display: none !important;
+    }
+
+    .d-print-block {
+        display: block !important;
+    }
+
+    .nino-card {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+
+    .stat-card {
+        break-inside: avoid;
+    }
 }
