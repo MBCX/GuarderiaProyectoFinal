@@ -1,10 +1,837 @@
 ﻿@page "/registro"
+@using System.ComponentModel.DataAnnotations;
+@using Guarderia.Domain.Entities;
 
-<PageTitle>Guardería Digital - Registro de niños</PageTitle>
+<PageTitle>Guardería Digital - Registro de Niños</PageTitle>
 
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0"><i class="fas fa-child text-primary"></i> Gestión de Niños</h1>
+                    <p class="text-muted mb-0">Registro y administración de matrículas</p>
+                </div>
+                <button class="btn btn-primary" @onclick="ShowRegistroForm">
+                    <i class="fas fa-plus"></i> Nuevo Registro
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Total Niños</h5>
+                            <h3 class="mb-0">@ninos.Count</h3>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Activos</h5>
+                            <h3 class="mb-0">@ninos.Count(n => n.Activo)</h3>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Con Alergias</h5>
+                            <h3 class="mb-0">@ninos.Count(n => n.Alergias.Any())</h3>
+                        </div>
+                        <i class="fas fa-allergies fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Nuevos (Este Mes)</h5>
+                            <h3 class="mb-0">@ninos.Count(n => n.FechaIngreso.Month == DateTime.Now.Month && n.FechaIngreso.Year == DateTime.Now.Year)</h3>
+                        </div>
+                        <i class="fas fa-calendar-plus fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Buscar por nombre o matrícula..." @bind="filtroTexto" @oninput="FiltrarNinos" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="filtroEstado" @bind:after="FiltrarNinos">
+                <option value="">Todos los estados</option>
+                <option value="activo">Solo Activos</option>
+                <option value="inactivo">Solo Inactivos</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="filtroAlergia" @bind:after="FiltrarNinos">
+                <option value="">Todas las alergias</option>
+                <option value="con">Con alergias</option>
+                <option value="sin">Sin alergias</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Lista de Niños -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Niños Registrados</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (ninosFiltrados.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Matrícula</th>
+                                <th>Nombre</th>
+                                <th>Edad</th>
+                                <th>Fecha Ingreso</th>
+                                <th>Estado</th>
+                                <th>Responsable</th>
+                                <th>Alergias</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var nino in ninosFiltrados)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@nino.NumeroMatricula</span></td>
+                                    <td>
+                                        <strong>@nino.Nombre</strong>
+                                        @if (!nino.Activo)
+                                        {
+                                            <span class="badge bg-danger ms-2">Inactivo</span>
+                                        }
+                                    </td>
+                                    <td>@CalcularEdad(nino.FechaNacimiento) años</td>
+                                    <td>@nino.FechaIngreso.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (nino.Activo)
+                                        {
+                                            <span class="badge bg-success">Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Baja: @nino.FechaBaja?.ToString("dd/MM/yyyy")</span>
+                                        }
+                                    </td>
+                                    <td>@nino.ResponsablePago?.Nombre</td>
+                                    <td>
+                                        @if (nino.Alergias.Any())
+                                        {
+                                            <span class="badge bg-warning text-dark">@nino.Alergias.Count alergia(s)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Sin alergias</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" @onclick="() => EditarNino(nino)">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info" @onclick="() => VerDetalles(nino)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            @if (nino.Activo)
+                                            {
+                                                <button class="btn btn-outline-danger" @onclick="() => DarBaja(nino)">
+                                                    <i class="fas fa-user-times"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No se encontraron niños</h5>
+                    <p class="text-muted">Prueba ajustando los filtros de búsqueda</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Registro/Edición -->
+@if (mostrarFormulario)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-child"></i> 
+                        @(ninoActual.Id == 0 ? "Nuevo Registro" : "Editar Niño")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="ninoActual" OnValidSubmit="GuardarNino">
+                        <DataAnnotationsValidator />
+                        
+                        <!-- Datos del Niño -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Número de Matrícula *</label>
+                                    <InputText class="form-control" @bind-Value="ninoActual.NumeroMatricula" />
+                                    <ValidationMessage For="@(() => ninoActual.NumeroMatricula)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre Completo *</label>
+                                    <InputText class="form-control" @bind-Value="ninoActual.Nombre" />
+                                    <ValidationMessage For="@(() => ninoActual.Nombre)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Nacimiento *</label>
+                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaNacimiento" />
+                                    <ValidationMessage For="@(() => ninoActual.FechaNacimiento)" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Ingreso *</label>
+                                    <InputDate class="form-control" @bind-Value="ninoActual.FechaIngreso" />
+                                    <ValidationMessage For="@(() => ninoActual.FechaIngreso)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Responsable de Pago -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-credit-card"></i> Responsable de Pago</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cédula *</label>
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Cedula" placeholder="001-1234567-8" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre *</label>
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Nombre" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono *</label>
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Telefono" placeholder="809-555-0000" />
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">Dirección</label>
+                                    <InputText class="form-control" @bind-Value="responsablePagoActual.Direccion" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Cuenta Corriente</label>
+                            <InputText class="form-control" @bind-Value="responsablePagoActual.CuentaCorriente" placeholder="Número de cuenta para débitos automáticos" />
+                        </div>
+
+                        <!-- Persona Autorizada -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-user-shield"></i> Persona Autorizada para Recogida</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Cédula *</label>
+                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Cedula" placeholder="001-1234567-8" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre *</label>
+                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Nombre" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Relación con el Niño *</label>
+                                    <InputSelect class="form-select" @bind-Value="personaAutorizadaActual.Relacion">
+                                        <option value="">Seleccionar relación</option>
+                                        <option value="Madre">Madre</option>
+                                        <option value="Padre">Padre</option>
+                                        <option value="Abuelo/a">Abuelo/a</option>
+                                        <option value="Tío/a">Tío/a</option>
+                                        <option value="Hermano/a">Hermano/a</option>
+                                        <option value="Tutor Legal">Tutor Legal</option>
+                                        <option value="Otro Familiar">Otro Familiar</option>
+                                        <option value="Conocido">Conocido</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono</label>
+                                    <InputText class="form-control" @bind-Value="personaAutorizadaActual.Telefono" placeholder="809-555-0000" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alergias -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-allergies"></i> Alergias Alimentarias</h6>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Agregar ingrediente alérgeno" @bind="nuevaAlergia" @onkeypress="@(async (e) => { if (e.Key == "Enter") await AgregarAlergia(); })" />
+                                <button type="button" class="btn btn-outline-secondary" @onclick="AgregarAlergia">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (alergiasActuales.Any())
+                        {
+                            <div class="mb-3">
+                                @foreach (var alergia in alergiasActuales)
+                                {
+                                    <span class="badge bg-warning text-dark me-2 mb-2">
+                                        @alergia.Ingrediente
+                                        <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.7em;" @onclick="() => EliminarAlergia(alergia)"></button>
+                                    </span>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CerrarFormulario">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> @(ninoActual.Id == 0 ? "Registrar" : "Actualizar")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 
 @code
 {
+    // Variables de estado usando las entidades reales
+    private List<Nino> ninos = new();
+    private List<Nino> ninosFiltrados = new();
+    private bool mostrarFormulario = false;
+    private Nino ninoActual = new();
+    private ResponsablePago responsablePagoActual = new();
+    private PersonaAutorizada personaAutorizadaActual = new();
+    private List<Alergia> alergiasActuales = new();
 
+    // Filtros
+    private string filtroTexto = "";
+    private string filtroEstado = "";
+    private string filtroAlergia = "";
+    private string nuevaAlergia = "";
+
+    protected override void OnInitialized()
+    {
+        CargarDatosIniciales();
+        ninosFiltrados = ninos;
+    }
+
+    private void CargarDatosIniciales()
+    {
+        try
+        {
+            // Todo: API.
+        }
+        catch (Exception)
+        {
+            ninos = new List<Nino>
+            {
+                new Nino
+                {
+                    Id = 1,
+                    NumeroMatricula = "GD2024001",
+                    Nombre = "Ana Sofía García López",
+                    FechaNacimiento = new DateTime(2021, 3, 15),
+                    FechaIngreso = new DateTime(2024, 2, 1),
+                    Activo = true,
+                    ResponsablePagoId = 1,
+                    ResponsablePago = new ResponsablePago
+                    {
+                        Id = 1,
+                        Cedula = "001-1234567-8",
+                        Nombre = "María López",
+                        Telefono = "809-555-0123",
+                        Direccion = "Calle Primera #123, Santo Domingo",
+                        CuentaCorriente = "123456789"
+                    },
+                    Alergias = new List<Alergia>
+                    {
+                        new Alergia
+                        {
+                            Id = 1,
+                            Ingrediente = new Ingrediente
+                            {
+                                Id = 1,
+                                Nombre = "Maní",
+                                EsAlergeno = true
+                            }
+                        },
+                        new Alergia
+                        {
+                            Id = 2,
+                            Ingrediente = new Ingrediente
+                            {
+                                Id = 2,
+                                Nombre = "Leche",
+                                EsAlergeno = true
+                            }
+                        }
+                    },
+                    PersonasAutorizadas = new List<NinoPersonaAutorizada>
+                    {
+                        new NinoPersonaAutorizada
+                        {
+                            NinoId = 1,
+                            PersonaAutorizadaId = 1,
+                            FechaAutorizacion = DateTime.Now.AddDays(-30),
+                            Activa = true,
+                            PersonaAutorizada = new PersonaAutorizada
+                            {
+                                Id = 1,
+                                Cedula = "001-1234567-8",
+                                Nombre = "María López",
+                                Telefono = "809-555-0123",
+                                Relacion = "Madre"
+                            }
+                        }
+                    },
+                    Asistencias = new List<Asistencia>(),
+                    Comidas = new List<Comida>(),
+                    ConsumosMenu = new List<ConsumoMenu>(),
+                    CargosMensuales = new List<CargoMensual>()
+                },
+                new Nino
+                {
+                    Id = 2,
+                    NumeroMatricula = "GD2024002",
+                    Nombre = "Carlos Andrés Rodríguez",
+                    FechaNacimiento = new DateTime(2020, 8, 22),
+                    FechaIngreso = new DateTime(2024, 1, 15),
+                    Activo = true,
+                    ResponsablePagoId = 2,
+                    ResponsablePago = new ResponsablePago
+                    {
+                        Id = 2,
+                        Cedula = "001-2345678-9",
+                        Nombre = "Carmen Rodríguez",
+                        Telefono = "809-555-0234",
+                        Direccion = "Av. Segunda #456, Santiago",
+                        CuentaCorriente = "987654321"
+                    },
+                    Alergias = new List<Alergia>(),
+                    PersonasAutorizadas = new List<NinoPersonaAutorizada>
+                    {
+                        new NinoPersonaAutorizada
+                        {
+                            NinoId = 2,
+                            PersonaAutorizadaId = 2,
+                            FechaAutorizacion = DateTime.Now.AddDays(-45),
+                            Activa = true,
+                            PersonaAutorizada = new PersonaAutorizada
+                            {
+                                Id = 2,
+                                Cedula = "001-2345678-9",
+                                Nombre = "Carmen Rodríguez",
+                                Relacion = "Madre"
+                            }
+                        }
+                    },
+                    Asistencias = new List<Asistencia>(),
+                    Comidas = new List<Comida>(),
+                    ConsumosMenu = new List<ConsumoMenu>(),
+                    CargosMensuales = new List<CargoMensual>()
+                },
+                new Nino
+                {
+                    Id = 3,
+                    NumeroMatricula = "GD2023015",
+                    Nombre = "Sofia Isabel Martínez",
+                    FechaNacimiento = new DateTime(2021, 1, 10),
+                    FechaIngreso = new DateTime(2023, 3, 1),
+                    FechaBaja = new DateTime(2024, 12, 15),
+                    Activo = false,
+                    ResponsablePagoId = 3,
+                    ResponsablePago = new ResponsablePago
+                    {
+                        Id = 3,
+                        Cedula = "001-0345678-9",
+                        Nombre = "Pedro Martínez",
+                        Telefono = "809-555-0345",
+                        Direccion = "Calle Tercera #789, La Vega"
+                    },
+                    Alergias = new List<Alergia>
+                    {
+                        new Alergia
+                        {
+                            Id = 3,
+                            Ingrediente = new Ingrediente
+                            {
+                                Id = 3,
+                                Nombre = "Huevos",
+                                EsAlergeno = true
+                            }
+                        }
+                    },
+                    PersonasAutorizadas = new List<NinoPersonaAutorizada>
+                    {
+                        new NinoPersonaAutorizada
+                        {
+                            NinoId = 3,
+                            PersonaAutorizadaId = 3,
+                            FechaAutorizacion = DateTime.Now.AddDays(-300),
+                            FechaRevocacion = new DateTime(2024, 12, 15),
+                            Activa = false,
+                            PersonaAutorizada = new PersonaAutorizada
+                            {
+                                Id = 3,
+                                Cedula = "001-0345678-9",
+                                Nombre = "Pedro Martínez",
+                                Relacion = "Padre"
+                            }
+                        }
+                    },
+                    Asistencias = new List<Asistencia>(),
+                    Comidas = new List<Comida>(),
+                    ConsumosMenu = new List<ConsumoMenu>(),
+                    CargosMensuales = new List<CargoMensual>()
+                }
+            };
+        }
+    }
+
+    private int CalcularEdad(DateTime fechaNacimiento)
+    {
+        var edad = DateTime.Today.Year - fechaNacimiento.Year;
+        if (fechaNacimiento.Date > DateTime.Today.AddYears(-edad)) edad--;
+        return edad;
+    }
+
+    private void ShowRegistroForm()
+    {
+        ninoActual = new Nino
+        {
+            FechaNacimiento = DateTime.Today.AddYears(-3),
+            FechaIngreso = DateTime.Today,
+            Activo = true,
+            Alergias = new List<Alergia>(),
+            PersonasAutorizadas = new List<NinoPersonaAutorizada>(),
+            Asistencias = new List<Asistencia>(),
+            Comidas = new List<Comida>(),
+            ConsumosMenu = new List<ConsumoMenu>(),
+            CargosMensuales = new List<CargoMensual>()
+        };
+        responsablePagoActual = new ResponsablePago
+        {
+            NinosAPagar = new List<Nino>(),
+            NinosAutorizados = new List<NinoPersonaAutorizada>()
+        };
+        personaAutorizadaActual = new PersonaAutorizada
+        {
+            NinosAutorizados = new List<NinoPersonaAutorizada>()
+        };
+        alergiasActuales = new List<Alergia>();
+        mostrarFormulario = true;
+    }
+
+    private void EditarNino(Nino nino)
+    {
+        ninoActual = new Nino
+        {
+            Id = nino.Id,
+            NumeroMatricula = nino.NumeroMatricula,
+            Nombre = nino.Nombre,
+            FechaNacimiento = nino.FechaNacimiento,
+            FechaIngreso = nino.FechaIngreso,
+            FechaBaja = nino.FechaBaja,
+            Activo = nino.Activo,
+            ResponsablePagoId = nino.ResponsablePagoId
+        };
+
+        responsablePagoActual = nino.ResponsablePago != null ? new ResponsablePago
+        {
+            Id = nino.ResponsablePago.Id,
+            Cedula = nino.ResponsablePago.Cedula,
+            Nombre = nino.ResponsablePago.Nombre,
+            Telefono = nino.ResponsablePago.Telefono,
+            Direccion = nino.ResponsablePago.Direccion,
+            CuentaCorriente = nino.ResponsablePago.CuentaCorriente
+        } : new ResponsablePago();
+
+        var primeraPersonaAutorizada = nino.PersonasAutorizadas?.FirstOrDefault()?.PersonaAutorizada;
+        personaAutorizadaActual = primeraPersonaAutorizada != null ? new PersonaAutorizada
+        {
+            Id = primeraPersonaAutorizada.Id,
+            Cedula = primeraPersonaAutorizada.Cedula,
+            Nombre = primeraPersonaAutorizada.Nombre,
+            Telefono = primeraPersonaAutorizada.Telefono,
+            Direccion = primeraPersonaAutorizada.Direccion,
+            Relacion = primeraPersonaAutorizada.Relacion
+        } : new PersonaAutorizada();
+
+        alergiasActuales = nino.Alergias?.Select(a => new Alergia
+        {
+            Id = a.Id,
+            Ingrediente = new Ingrediente
+            {
+                Id = a.Ingrediente?.Id ?? 0,
+                Nombre = a.Ingrediente?.Nombre ?? "",
+                EsAlergeno = a.Ingrediente?.EsAlergeno ?? true
+            }
+        }).ToList() ?? new List<Alergia>();
+
+        mostrarFormulario = true;
+    }
+
+    private void VerDetalles(Nino nino)
+    {
+        // Implementar navegación a página de detalles
+        // NavigationManager.NavigateTo($"/nino/{nino.Id}");
+    }
+
+    private void DarBaja(Nino nino)
+    {
+        nino.Activo = false;
+        nino.FechaBaja = DateTime.Today;
+
+        // Revocar todas las autorizaciones activas
+        foreach (var autorizacion in nino.PersonasAutorizadas?.Where(pa => pa.Activa) ?? Enumerable.Empty<NinoPersonaAutorizada>())
+        {
+            autorizacion.Activa = false;
+            autorizacion.FechaRevocacion = DateTime.Today;
+        }
+
+        StateHasChanged();
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+    }
+
+    private void GuardarNino()
+    {
+        if (ninoActual.Id == 0)
+        {
+            // Nuevo registro
+            ninoActual.Id = ninos.Count > 0 ? ninos.Max(n => n.Id) + 1 : 1;
+            responsablePagoActual.Id = ninoActual.Id;
+            personaAutorizadaActual.Id = ninoActual.Id;
+
+            ninoActual.ResponsablePago = responsablePagoActual;
+            ninoActual.ResponsablePagoId = responsablePagoActual.Id;
+
+            // Crear la relación NinoPersonaAutorizada
+            var autorizacion = new NinoPersonaAutorizada
+            {
+                NinoId = ninoActual.Id,
+                PersonaAutorizadaId = personaAutorizadaActual.Id,
+                FechaAutorizacion = DateTime.Now,
+                Activa = true,
+                PersonaAutorizada = personaAutorizadaActual
+            };
+
+            ninoActual.PersonasAutorizadas = new List<NinoPersonaAutorizada> { autorizacion };
+            ninoActual.Alergias = alergiasActuales;
+
+            // Inicializar otras listas
+            ninoActual.Asistencias = new List<Asistencia>();
+            ninoActual.Comidas = new List<Comida>();
+            ninoActual.ConsumosMenu = new List<ConsumoMenu>();
+            ninoActual.CargosMensuales = new List<CargoMensual>();
+
+            ninos.Add(ninoActual);
+        }
+        else
+        {
+            // Actualizar existente
+            var ninoExistente = ninos.FirstOrDefault(n => n.Id == ninoActual.Id);
+            if (ninoExistente != null)
+            {
+                ninoExistente.NumeroMatricula = ninoActual.NumeroMatricula;
+                ninoExistente.Nombre = ninoActual.Nombre;
+                ninoExistente.FechaNacimiento = ninoActual.FechaNacimiento;
+                ninoExistente.FechaIngreso = ninoActual.FechaIngreso;
+                ninoExistente.ResponsablePago = responsablePagoActual;
+                ninoExistente.ResponsablePagoId = responsablePagoActual.Id;
+
+                // Actualizar persona autorizada existente
+                var autorizacionExistente = ninoExistente.PersonasAutorizadas?.FirstOrDefault();
+                if (autorizacionExistente != null)
+                {
+                    autorizacionExistente.PersonaAutorizada = personaAutorizadaActual;
+                }
+                else
+                {
+                    var nuevaAutorizacion = new NinoPersonaAutorizada
+                    {
+                        NinoId = ninoExistente.Id,
+                        PersonaAutorizadaId = personaAutorizadaActual.Id,
+                        FechaAutorizacion = DateTime.Now,
+                        Activa = true,
+                        PersonaAutorizada = personaAutorizadaActual
+                    };
+                    ninoExistente.PersonasAutorizadas = new List<NinoPersonaAutorizada> { nuevaAutorizacion };
+                }
+
+                ninoExistente.Alergias = alergiasActuales;
+            }
+        }
+
+        FiltrarNinos();
+        CerrarFormulario();
+    }
+
+    private async Task AgregarAlergia()
+    {
+        if (!string.IsNullOrWhiteSpace(nuevaAlergia) &&
+            !alergiasActuales.Any(a => a.Ingrediente?.Nombre?.Equals(nuevaAlergia, StringComparison.OrdinalIgnoreCase) == true))
+        {
+            var nuevaAlergiaEntity = new Alergia
+            {
+                Id = alergiasActuales.Count > 0 ? alergiasActuales.Max(a => a.Id) + 1 : 1,
+                Ingrediente = new Ingrediente
+                {
+                    Id = alergiasActuales.Count + 1,
+                    Nombre = nuevaAlergia.Trim(),
+                    EsAlergeno = true,
+                    Descripcion = $"Ingrediente alérgeno: {nuevaAlergia.Trim()}",
+                    Platos = new List<PlatoIngrediente>(),
+                    Alergias = new List<Alergia>()
+                }
+            };
+
+            alergiasActuales.Add(nuevaAlergiaEntity);
+            nuevaAlergia = "";
+        }
+    }
+
+    private void EliminarAlergia(Alergia alergia)
+    {
+        alergiasActuales.Remove(alergia);
+    }
+
+    private void FiltrarNinos()
+    {
+        ninosFiltrados = ninos.Where(n =>
+            (string.IsNullOrEmpty(filtroTexto) ||
+             n.Nombre.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase) ||
+             n.NumeroMatricula.Contains(filtroTexto, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(filtroEstado) ||
+             (filtroEstado == "activo" && n.Activo) ||
+             (filtroEstado == "inactivo" && !n.Activo)) &&
+            (string.IsNullOrEmpty(filtroAlergia) ||
+             (filtroAlergia == "con" && n.Alergias?.Any() == true) ||
+             (filtroAlergia == "sin" && (n.Alergias?.Any() != true)))
+        ).ToList();
+    }
+
+    // Métodos auxiliares para mostrar información en la UI
+    private string ObtenerNombreResponsable(Nino nino)
+    {
+        return nino.ResponsablePago?.Nombre ?? "Sin asignar";
+    }
+
+    private int ContarAlergias(Nino nino)
+    {
+        return nino.Alergias?.Count ?? 0;
+    }
+
+    private string ObtenerNombresAlergias(Nino nino)
+    {
+        if (nino.Alergias?.Any() != true)
+            return "Sin alergias";
+
+        return string.Join(", ", nino.Alergias.Select(a => a.Ingrediente?.Nombre ?? "").Where(n => !string.IsNullOrEmpty(n)));
+    }
+
+    private List<PersonaAutorizada> ObtenerPersonasAutorizadasActivas(Nino nino)
+    {
+        return nino.PersonasAutorizadas?
+            .Where(pa => pa.Activa)
+            .Select(pa => pa.PersonaAutorizada)
+            .Where(p => p != null)
+            .ToList() ?? new List<PersonaAutorizada>();
+    }
+
+    private string ObtenerEstadoTexto(Nino nino)
+    {
+        if (nino.Activo)
+            return "Activo";
+
+        if (nino.FechaBaja.HasValue)
+            return $"Baja: {nino.FechaBaja.Value:dd/MM/yyyy}";
+
+        return "Inactivo";
+    }
+
+    // Validaciones para el formulario
+    private bool ValidarFormulario()
+    {
+        return !string.IsNullOrWhiteSpace(ninoActual.NumeroMatricula) &&
+               !string.IsNullOrWhiteSpace(ninoActual.Nombre) &&
+               !string.IsNullOrWhiteSpace(responsablePagoActual.Cedula) &&
+               !string.IsNullOrWhiteSpace(responsablePagoActual.Nombre) &&
+               !string.IsNullOrWhiteSpace(personaAutorizadaActual.Cedula) &&
+               !string.IsNullOrWhiteSpace(personaAutorizadaActual.Nombre) &&
+               !string.IsNullOrWhiteSpace(personaAutorizadaActual.Relacion);
+    }
 }
